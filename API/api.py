@@ -58,6 +58,15 @@ def new_token():
 """
 
 
+@app.route('/api/account/get_user_group')
+def get_user_group():
+    """
+    获取用户组信息
+    :return:
+    """
+    return jsonify({'code': 1, 'msg': 'success', 'data': USER_GROUP})
+
+
 @app.route('/api/account/login', methods=['POST'])
 def login():
     """
@@ -4167,6 +4176,67 @@ def delete_activity():
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to update'})
     return jsonify({'code': 1, 'msg': 'unexpected user'})
+
+
+"""
+    标签接口
+"""
+
+
+@app.route('/api/tags/get_first_tag')
+def get_first_tag():
+    """
+    获取tag
+    :return:
+    """
+    db = Database()
+    tags = db.get({'type': 1}, 'tags', 0)
+    return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+
+
+@app.route('/api/tags/get_child_tag')
+def get_child_tag():
+    """
+    获取tag下的子tag
+    :return:
+    """
+    db = Database()
+    tag_id = request.values.get('tag_id')
+    tags = db.get({'father': tag_id}, 'tags', 0)
+    return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+
+
+@app.route('/api/tags/get_tag_recommend')
+def get_tag_recommend():
+    """
+    键入tag时获取推荐
+    :return:
+    """
+    db = Database()
+    tag_id = request.values.get('tag_id')
+    tag = request.values.get('tag')
+    tags = db.sql('SELECT * FROM tags  WHERE name LIKE "%' + str(tag) + '%" AND father = "' + str(tag_id) + '"')
+    return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+
+
+@app.route('/api/tags/add_tag')
+def add_tag():
+    """
+    添加tag
+    :return:
+    """
+    db = Database()
+    token = request.form['token']
+    user = db.get({'token': token}, 'users')
+    if user:
+        name = request.form['name']
+        tag_type = request.form['tag_type']
+        father = request.form['father']
+        flag = db.insert({'name': name, 'type': tag_type, 'father': father}, 'tags')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 if __name__ == '__main__':

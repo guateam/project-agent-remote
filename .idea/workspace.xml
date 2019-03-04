@@ -2,44 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d286ef92-5610-45b8-9c83-0b909be44095" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/deployment.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/remote_host.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/OCR.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/Project-Agent.postman_collection.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/api.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/db.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/3_back.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/3_front.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/4_back.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/4_front.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/5_back.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/5_front.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/static/identity_card/y_back.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/API/utils.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CF/cf.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CF/rate_rect/article_rate_rect.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CF/rate_rect/question_rate_rect.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/CF/similarity_vector.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/WordSegmentation.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/checkpoints/textcnn/best_validation.data-00000-of-00001" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/checkpoints/textcnn/best_validation.index" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/checkpoints/textcnn/best_validation.meta" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/checkpoints/textcnn/checkpoint" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/dataset/cnews.val.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/dataset/cnews.vocab.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/tensorboard/textcnn/events.out.tfevents.1537777548.DESKTOP-QOKVFB8" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/tensorboard/textcnn/events.out.tfevents.1537777725.DESKTOP-QOKVFB8" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/WSG/tensorboard/textcnn/events.out.tfevents.1537778329.DESKTOP-QOKVFB8" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/vague_search/vague_search.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/API/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/api.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -70,8 +34,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/API/db.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="535">
-              <caret line="68" selection-start-line="68" selection-end-line="68" />
+            <state relative-caret-position="398">
+              <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
             </state>
           </provider>
         </entry>
@@ -79,8 +43,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/API/api.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-406">
-              <caret line="2278" column="25" selection-start-line="2278" selection-start-column="25" selection-end-line="2278" selection-end-column="25" />
+            <state relative-caret-position="-1351">
+              <caret line="2169" column="39" selection-start-line="2169" selection-start-column="26" selection-end-line="2169" selection-end-column="39" />
             </state>
           </provider>
         </entry>
@@ -88,7 +52,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CF/cf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="799">
+            <state relative-caret-position="534">
               <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
             </state>
           </provider>
@@ -124,9 +88,12 @@
       <find>get_</find>
       <find>get_recommend</find>
       <find>..</find>
-      <find>get</find>
       <find>get_friend</find>
       <find>add_answer</find>
+      <find>question</find>
+      <find>get_category</find>
+      <find>tags</find>
+      <find>get</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -155,6 +122,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -176,7 +144,6 @@
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -297,12 +264,14 @@
       <workItem from="1551590538336" duration="5000" />
       <workItem from="1551590565246" duration="5517000" />
       <workItem from="1551610226093" duration="20000" />
-      <workItem from="1551611023322" duration="4788000" />
+      <workItem from="1551611023322" duration="6193000" />
+      <workItem from="1551622751091" duration="150000" />
+      <workItem from="1551671918611" duration="3172000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="59104000" />
+    <option name="totallyTimeSpent" value="63831000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -315,9 +284,8 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.32995737" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.33742005" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -329,9 +297,9 @@
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32936078" />
       <window_info anchor="bottom" id="Docker" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" />
-      <window_info active="true" anchor="bottom" id="File Transfer" order="9" sideWeight="0.49946696" visible="true" weight="0.329718" />
+      <window_info anchor="bottom" id="File Transfer" order="9" sideWeight="0.49946696" weight="0.329718" />
       <window_info anchor="bottom" id="Database Changes" order="10" />
-      <window_info anchor="bottom" id="Terminal" order="11" weight="0.32936078" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.3286334" />
       <window_info anchor="bottom" id="Event Log" order="12" sideWeight="0.50053304" side_tool="true" weight="0.32936078" />
       <window_info anchor="bottom" id="Python Console" order="13" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -346,27 +314,27 @@
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/API/config.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
     <entry file="file://$PROJECT_DIR$/CF/cf.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="799">
+        <state relative-caret-position="534">
           <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/API/db.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="535">
-          <caret line="68" selection-start-line="68" selection-end-line="68" />
+        <state relative-caret-position="398">
+          <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/API/config.py">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/API/api.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-406">
-          <caret line="2278" column="25" selection-start-line="2278" selection-start-column="25" selection-end-line="2278" selection-end-column="25" />
+        <state relative-caret-position="-1351">
+          <caret line="2169" column="39" selection-start-line="2169" selection-start-column="26" selection-end-line="2169" selection-end-column="39" />
         </state>
       </provider>
     </entry>
