@@ -1966,13 +1966,28 @@ def add_article():
     token = request.form['token']
     content = request.form["content"]
     title = request.form['title']
-
+    cover = request.form['cover']
+    price = request.form['price']
+    tag1 = request.form['first_tag']
+    tag2 = request.form['second_tag']
     db = Database()
+    tag = ""
+    for tg in tag2:
+        exist = db.get({'name':tg},"tags")
+        if(not exist):
+            db.insert({'name':tg,'type':2},"tags")
+            new = db.get({'name':tg},"tags")
+            tag += ","+new[0]['id']
+        else:
+            tag += ","+exist[0]['id']
+
+    tag = tag1 + tag
+
     user = db.get({'token': token}, 'users')
     if not user:
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
-    success = db.insert({'content': content, 'userID': user['userID'], 'title': title}, 'article')
+    success = db.insert({'content': content, 'userID': user['userID'],'price':price,'cover':cover, 'tags':tag, 'title': title}, 'article')
     if success:
         return jsonify({'code': 1, 'msg': 'add success'})
     else:
@@ -4281,6 +4296,5 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000, debug=False, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000, debug=False)
     # app.run(host='0.0.0.0', port=5000, debug=False)
