@@ -867,7 +867,7 @@ def change_account_balance(num, token):
         # 若num为负数，钱包可能被扣到负值
         if user['account_balance'] + num < 0:
             return -1
-        flag = db.update({'userID': user['user_id']}, {'account_balance': user['account_balance'] + num}, 'users')
+        flag = db.update({'userID': user['userID']}, {'account_balance': user['account_balance'] + num}, 'users')
         if flag:
             return 1
         return 0
@@ -977,7 +977,7 @@ def add_priced_question():
     token = request.form['token']
     price = request.form['price']
     db = Database()
-    res = change_account_balance(int(price), token)
+    res = change_account_balance(-int(price), token)
     if res == 1:
         user = db.get({'token': token}, 'users')
         if user:
@@ -1386,6 +1386,35 @@ def add_answer():
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to insert answer'})
+        return jsonify({'code': -1, 'msg': 'unknown question'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/answer/add_priced_answer')
+def add_priced_answer():
+    """
+    对付费问题添加回答
+    :return:
+    """
+    question_id = request.form['question_id']
+    token = request.form['token']
+    content = request.form['content']
+    answer_type = request.form['answer_type']
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        question = db.get({'questionID': question_id}, 'questions')
+        if question:
+            allowed_user = question['allowed_user'].split(',')
+            if user['usergroup'] in allowed_user:
+                flag = db.insert(
+                    {'content': content, 'userID': user['userID'], 'questionID': question_id,
+                     'answertype': answer_type},
+                    'answers')
+                if flag:
+                    return jsonify({'code': 1, 'msg': 'success'})
+                return jsonify({'code': -2, 'msg': 'unable to insert answer'})
+            return jsonify({'code': -3, 'msg': 'you are not allowed to answer'})
         return jsonify({'code': -1, 'msg': 'unknown question'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -4216,10 +4245,12 @@ def get_tag_recommend():
     tag_id = request.values.get('tag_id')
     tag = request.values.get('tag')
     tags = db.sql('SELECT * FROM tags  WHERE name LIKE "%' + str(tag) + '%" AND father = "' + str(tag_id) + '"')
-    return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+    if tags:
+        return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+    return jsonify({'code': 1, 'msg': 'success', 'data': [{'name': tag, 'id': -1}]})
 
 
-@app.route('/api/tags/add_tag')
+@app.route('/api/tags/add_tag', methods=['POST'])
 def add_tag():
     """
     添加tag
@@ -4232,9 +4263,12 @@ def add_tag():
         name = request.form['name']
         tag_type = request.form['tag_type']
         father = request.form['father']
+        if db.get({'name': name, 'type': tag_type, 'father': father}, 'tags'):
+            return jsonify({'code': -2, 'msg': 'tag is already exist'})
         flag = db.insert({'name': name, 'type': tag_type, 'father': father}, 'tags')
         if flag:
-            return jsonify({'code': 1, 'msg': 'success'})
+            tag_id = db.get({'name': name, 'type': tag_type, 'father': father}, 'tags')
+            return jsonify({'code': 1, 'msg': 'success', 'data': tag_id})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
