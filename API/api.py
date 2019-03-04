@@ -2239,7 +2239,7 @@ def get_recommend():
         result = flow_loading(recommend_question_ids, each_, pages)
 
         # 录入结果
-        for id in recommend_question_ids:
+        for id in result:
             # 查询该id的问题信息
             out = db.sql("select * from questionsinfo where questionID = '%s'" % id)
             # 正则表达匹配图片
