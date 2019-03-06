@@ -2298,7 +2298,7 @@ def classify_by_tag():
     tag = request.values.get('tag')
     type = request.values.get('type')
     # 每次调用返回几个
-    each = 5
+    each = 6
     # 第几次调用(相当于第几页/第几次流加载），第一次为 1
     page = request.values.get('page')
 
@@ -2314,6 +2314,33 @@ def classify_by_tag():
     result = flow_loading(target, each, page)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
+
+
+@app.route('/api/homepage/classify_all_tag')
+def classify_all_tag():
+    """
+    获取所有类别的问题或者文章，type 1-问题+回答   2-文章
+    :return:
+    """
+    # 需要获取的问题或文章tag
+    type = request.values.get('type')
+    # 最终的数据
+    data = {}
+
+    db = Database()
+    category = db.sql("select * from tags where type=1")
+    for cate in category:
+        tag = cate['id']
+        if type == 1:
+            target = db.sql("select * from questions where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
+                                                                                                              "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+        elif type == 2:
+            target = db.sql("select * from article where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
+                                                                                                            "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+        result = flow_loading(target, 6, 1)
+        data[tag] = target
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
 
 def flow_loading(data, each, page):
