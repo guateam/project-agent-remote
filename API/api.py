@@ -2323,7 +2323,6 @@ def get_recommend():
     """
     # 用户token
     token = request.values.get('token')
-    return jsonify({'code': 1, 'msg': 'test'})
     # 加载的次数
     pages = request.values.get('page')
     # 每次加载量
@@ -2398,7 +2397,7 @@ def classify_by_tag():
     """
     # 需要获取的问题或文章tag
     tag = request.values.get('tag')
-    type = request.values.get('type')
+    type = int(request.values.get('type'))
     # 每次调用返回几个
     each = 6
     # 第几次调用(相当于第几页/第几次流加载），第一次为 1
@@ -2407,11 +2406,11 @@ def classify_by_tag():
     db = Database()
 
     if type == 1:
-        target = db.sql("select * from questions where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
-                                                                                                          "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+        target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
     elif type == 2:
-        target = db.sql("select * from article where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
-                                                                                                        "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+        target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
 
     result = flow_loading(target, each, page)
 
@@ -2427,7 +2426,7 @@ def classify_all_tag():
     # 需要获取的问题或文章tag
     type = int(request.values.get('type'))
     # 最终的数据
-    data = {}
+    data = []
 
     result = []
     db = Database()
@@ -2442,8 +2441,7 @@ def classify_all_tag():
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
         result = flow_loading(target, 6, 1)
-
-        data[tag] = result
+        data.append(result)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
