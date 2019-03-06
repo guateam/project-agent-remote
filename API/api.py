@@ -2225,7 +2225,7 @@ def get_recommend():
     # 加载的次数
     pages = request.values.get('page')
     # 每次加载量
-    each_ = 5
+    each_ = 6
 
     # 用于推荐的评分矩阵路径，以api.py所在目录为根目录的表示
     rate_dir = "/etc/project-agent/CF/rate_rect/question_rate_rect.txt"
@@ -2249,7 +2249,7 @@ def get_recommend():
                                                ' build it by function build_questoin_rate_rect'})
         # 获得相似度降序排列的问题序列
         recommend_question_ids = item_cf_api("question_similar_rect.txt", "question_id_list.txt",
-                                             target_question_id, 13)
+                                             target_question_id, 100)
 
         result = flow_loading(recommend_question_ids, each_, pages)
 
@@ -3649,6 +3649,9 @@ def get_recommend_article():
     :return:code:-1=评分矩阵未建立  0=用户不存在  1=成功
     """
     token = request.values.get('token')
+    page = request.values.get('page')
+    each = 6
+
     db = Database()
     user = db.get({'token': token}, 'users')
 
@@ -3660,23 +3663,26 @@ def get_recommend_article():
     if not os.path.exists(rate_dir):
         return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
                                            ' build it by function build_article_rate_rect'})
-    # 查找该用户最近浏览的最多3篇文章
+    # 查找该用户最近浏览的最多10篇文章
     action = db.sql("select distinct targetID from useraction where userID='%s' and targettype >=21 and targettype<=25 "
-                    "order by actiontime DESC limit 3" % user['userID'])
+                    "order by actiontime DESC limit 10" % user['userID'])
     # 推荐结果容器
     recommend_article = []
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
-        ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 3)
+        ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 10)
         for id in ids:
             article = db.get({'articleID': id}, 'article')
             article.update({'tags': get_tags(article['tags'])})
-            recommend_article.append(article)
+            if article in recommend_article:
+                recommend_article.append(article)
     # 若action为空，则随机推荐
     if not action:
         recommend_article = db.sql("select * from article order by edittime DESC limit 10")
 
-    return jsonify({'code': 1, 'msg': 'success', 'data': recommend_article})
+    result = flow_loading(recommend_article,each,page)
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
 
 """
