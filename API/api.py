@@ -2514,13 +2514,14 @@ def classify_all_tag():
     type = int(request.values.get('type'))
     # 最终的数据
     data = []
-
+    # 从数据库取出来的数据
+    target = []
+    # 流加载后的数据
     result = []
     db = Database()
     category = db.sql("select * from tags where type=1")
     for cate in category:
         tag = str(cate['id'])
-        target = []
         if type == 1:
             sts = "select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%' or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc"
             target = db.sql(sts)
@@ -3044,8 +3045,10 @@ def build_article_rate_rect():
     # 所有用户对某一篇文章的行为进行权值计算后得到的一个向量,所有文章对应一个向量组合成矩阵
     # file_name = request.values.get("file_name")
     file_name = "article_rate_rect.txt"
-    rate_path = "/etc/project-agent/CF/rate_rect/"
-    similar_path = "/etc/project-agent/CF/similar_rect/"
+    # rate_path = "/etc/project-agent/CF/rate_rect/"
+    # similar_path = "/etc/project-agent/CF/similar_rect/"
+    rate_path = "../CF/rate_rect/"
+    similar_path = "../CF/similar_rect/"
     id_list = "article_id_list.txt"
 
     # 重置文件内容
@@ -3868,12 +3871,13 @@ def get_recommend_article():
     """
     token = request.values.get('token')
     page = request.values.get('page')
-    each = 6
+    each_page = 6
 
     db = Database()
     user = db.get({'token': token}, 'users')
 
-    rate_dir = '/etc/project-agent/CF/rate_rect/article_rate_rect.txt'
+    # rate_dir = '/etc/project-agent/CF/rate_rect/article_rate_rect.txt'
+    rate_dir = '../CF/rate_rect/article_rate_rect.txt'
 
     if not user:
         return jsonify({'code': 0, 'msg': 'user is not exist'})
@@ -3883,7 +3887,7 @@ def get_recommend_article():
                                            ' build it by function build_article_rate_rect'})
     # 查找该用户最近浏览的最多10篇文章
     action = db.sql("select distinct targetID from useraction where userID='%s' and targettype >=21 and targettype<=25 "
-                    "order by actiontime DESC limit 10" % user['userID'])
+                    "order by actiontime DESC limit 2" % user['userID'])
     # 推荐结果容器
     recommend_article = []
     # 推荐的文章id,最多3条，相似度降序排列
@@ -3892,13 +3896,13 @@ def get_recommend_article():
         for id in ids:
             article = db.get({'articleID': id}, 'article')
             article.update({'tags': get_tags(article['tags'])})
-            if article in recommend_article:
+            if article not in recommend_article:
                 recommend_article.append(article)
     # 若action为空，则随机推荐
     if not action:
         recommend_article = db.sql("select * from article order by edittime DESC limit 10")
 
-    result = flow_loading(recommend_article, each, page)
+    result = flow_loading(recommend_article, each_page, page)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
@@ -4534,6 +4538,5 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000, debug=False, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
     # app.run(host='0.0.0.0', port=5000, debug=False)
