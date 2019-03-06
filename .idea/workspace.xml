@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d286ef92-5610-45b8-9c83-0b909be44095" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/API/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/api.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -11,7 +12,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/remote_host$api.coverage" NAME="api Coverage Results" MODIFIED="1551616634912" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/API" />
+    <SUITE FILE_PATH="coverage/remote_host$api.coverage" NAME="api Coverage Results" MODIFIED="1551857865982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/API" />
     <SUITE FILE_PATH="coverage/remote_host$cf.coverage" NAME="cf Coverage Results" MODIFIED="1550750274346" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/CF" />
   </component>
   <component name="DatabaseView">
@@ -33,7 +34,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/API/db.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-43">
+            <state relative-caret-position="3400">
               <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
             </state>
           </provider>
@@ -42,8 +43,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/API/api.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="281">
-              <caret line="979" column="34" selection-start-line="979" selection-start-column="34" selection-end-line="979" selection-end-column="34" />
+            <state relative-caret-position="179">
+              <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
             </state>
           </provider>
         </entry>
@@ -51,7 +52,7 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CF/cf.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="534">
+            <state relative-caret-position="799">
               <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
             </state>
           </provider>
@@ -66,8 +67,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>similar_rate</find>
-      <find>similar_rect</find>
       <find>similar_re</find>
       <find>build_question_rate_rect</find>
       <find>add_question</find>
@@ -85,7 +84,6 @@
       <find>build</find>
       <find>set_</find>
       <find>get_</find>
-      <find>get_recommend</find>
       <find>..</find>
       <find>get_friend</find>
       <find>add_answer</find>
@@ -94,6 +92,11 @@
       <find>tags</find>
       <find>get</find>
       <find>get_user_gro</find>
+      <find>get_recommend</find>
+      <find>collect_article</find>
+      <find>get_article</find>
+      <find>add_article</find>
+      <find>get_article_rate</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -122,7 +125,6 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
-      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -144,6 +146,7 @@
           <select />
         </subPane>
       </pane>
+      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -267,11 +270,16 @@
       <workItem from="1551611023322" duration="6193000" />
       <workItem from="1551622751091" duration="150000" />
       <workItem from="1551671918611" duration="7566000" />
+      <workItem from="1551709225149" duration="4000" />
+      <workItem from="1551760861080" duration="770000" />
+      <workItem from="1551777637533" duration="8826000" />
+      <workItem from="1551852492262" duration="6082000" />
+      <workItem from="1551859741743" duration="1044000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="68225000" />
+    <option name="totallyTimeSpent" value="85869000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -286,13 +294,13 @@
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.33742005" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.35607675" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" />
-      <window_info anchor="bottom" id="Run" order="2" weight="0.32936078" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.3997833" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.3286334" />
+      <window_info anchor="bottom" id="Debug" order="3" weight="0.3991323" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" weight="0.32936078" />
@@ -315,9 +323,16 @@
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
+    <entry file="file://$PROJECT_DIR$/API/db.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="3400">
+          <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/CF/cf.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="534">
+        <state relative-caret-position="799">
           <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
         </state>
       </provider>
@@ -325,17 +340,10 @@
     <entry file="file://$PROJECT_DIR$/API/config.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/API/db.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-43">
-          <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/API/api.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="281">
-          <caret line="979" column="34" selection-start-line="979" selection-start-column="34" selection-end-line="979" selection-end-column="34" />
+        <state relative-caret-position="179">
+          <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
         </state>
       </provider>
     </entry>
