@@ -2,9 +2,17 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="d286ef92-5610-45b8-9c83-0b909be44095" name="Default Changelist" comment="">
+<<<<<<< Updated upstream
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/API/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/api.py" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/API/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/db.py" afterDir="false" />
+=======
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+>>>>>>> Stashed changes
+>>>>>>> master
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -30,13 +38,44 @@
     <expand />
     <select />
   </component>
+  <component name="FUSProjectUsageTrigger">
+    <session id="-1731264939">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="2" />
+          <entry key="project.open.time.0" value="1" />
+          <entry key="project.open.time.1" value="1" />
+          <entry key="project.opened" value="2" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.edit">
+        <counts>
+          <entry key="py" value="154" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.edit">
+        <counts>
+          <entry key="Python" value="154" />
+        </counts>
+      </usages-collector>
+    </session>
+  </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/API/db.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
             <state relative-caret-position="348">
               <caret line="92" column="25" lean-forward="true" selection-start-line="92" selection-start-column="25" selection-end-line="92" selection-end-column="25" />
+=======
+<<<<<<< Updated upstream
+            <state relative-caret-position="3400">
+=======
+            <state relative-caret-position="3600">
+>>>>>>> Stashed changes
+              <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
+>>>>>>> master
             </state>
           </provider>
         </entry>
@@ -44,8 +83,18 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/API/api.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
             <state relative-caret-position="300">
               <caret line="2082" column="54" selection-start-line="2082" selection-start-column="54" selection-end-line="2082" selection-end-column="54" />
+=======
+<<<<<<< Updated upstream
+            <state relative-caret-position="179">
+              <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
+=======
+            <state relative-caret-position="287">
+              <caret line="2332" column="24" lean-forward="true" selection-start-line="2332" selection-start-column="24" selection-end-line="2332" selection-end-column="24" />
+>>>>>>> Stashed changes
+>>>>>>> master
             </state>
           </provider>
         </entry>
@@ -53,7 +102,11 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/CF/cf.py">
           <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
             <state relative-caret-position="799">
+=======
+            <state relative-caret-position="846">
+>>>>>>> Stashed changes
               <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
             </state>
           </provider>
@@ -130,18 +183,13 @@
         <subPane>
           <expand>
             <path>
-              <item name="remote_host" type="b2602c69:ProjectViewProjectNode" />
-              <item name="remote_host" type="462c0819:PsiDirectoryNode" />
+              <item name="project-agent-remote" type="b2602c69:ProjectViewProjectNode" />
+              <item name="project-agent-remote" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
-              <item name="remote_host" type="b2602c69:ProjectViewProjectNode" />
-              <item name="remote_host" type="462c0819:PsiDirectoryNode" />
+              <item name="project-agent-remote" type="b2602c69:ProjectViewProjectNode" />
+              <item name="project-agent-remote" type="462c0819:PsiDirectoryNode" />
               <item name="API" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="remote_host" type="b2602c69:ProjectViewProjectNode" />
-              <item name="remote_host" type="462c0819:PsiDirectoryNode" />
-              <item name="CF" type="462c0819:PsiDirectoryNode" />
             </path>
           </expand>
           <select />
@@ -157,7 +205,7 @@
     <property name="WebServerToolWindowPanel.toolwindow.show.date" value="false" />
     <property name="WebServerToolWindowPanel.toolwindow.show.permissions" value="false" />
     <property name="WebServerToolWindowPanel.toolwindow.show.size" value="false" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/../Project-Agent" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
@@ -225,6 +273,10 @@
       <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
+    <list>
+      <item itemvalue="Python.api" />
+      <item itemvalue="Python.cf" />
+    </list>
     <recent_temporary>
       <list>
         <item itemvalue="Python.api" />
@@ -293,10 +345,17 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
+    <frame x="-7" y="-7" width="1550" height="838" extended-state="6" />
     <layout>
+<<<<<<< HEAD
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.35980812" />
+=======
+<<<<<<< Updated upstream
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.35607675" />
+=======
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.22589168" />
+>>>>>>> Stashed changes
+>>>>>>> master
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -310,7 +369,7 @@
       <window_info anchor="bottom" id="Version Control" order="8" />
       <window_info anchor="bottom" id="File Transfer" order="9" sideWeight="0.49946696" weight="0.329718" />
       <window_info anchor="bottom" id="Database Changes" order="10" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.3286334" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" visible="true" weight="0.029787235" />
       <window_info anchor="bottom" id="Event Log" order="12" sideWeight="0.50053304" side_tool="true" weight="0.32936078" />
       <window_info anchor="bottom" id="Python Console" order="13" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -324,10 +383,31 @@
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
+  <component name="VcsContentAnnotationSettings">
+    <option name="myLimit" value="2678400000" />
+  </component>
   <component name="editorHistoryManager">
+<<<<<<< HEAD
+=======
+    <entry file="file://$PROJECT_DIR$/API/db.py">
+      <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
+        <state relative-caret-position="3400">
+=======
+        <state relative-caret-position="3600">
+>>>>>>> Stashed changes
+          <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
+        </state>
+      </provider>
+    </entry>
+>>>>>>> master
     <entry file="file://$PROJECT_DIR$/CF/cf.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< Updated upstream
         <state relative-caret-position="799">
+=======
+        <state relative-caret-position="846">
+>>>>>>> Stashed changes
           <caret line="48" column="33" selection-start-line="48" selection-start-column="33" selection-end-line="48" selection-end-column="33" />
         </state>
       </provider>
@@ -344,8 +424,18 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/API/api.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
         <state relative-caret-position="300">
           <caret line="2082" column="54" selection-start-line="2082" selection-start-column="54" selection-end-line="2082" selection-end-column="54" />
+=======
+<<<<<<< Updated upstream
+        <state relative-caret-position="179">
+          <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
+=======
+        <state relative-caret-position="287">
+          <caret line="2332" column="24" lean-forward="true" selection-start-line="2332" selection-start-column="24" selection-end-line="2332" selection-end-column="24" />
+>>>>>>> Stashed changes
+>>>>>>> master
         </state>
       </provider>
     </entry>
