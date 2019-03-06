@@ -83,4 +83,7 @@
     </LinkMapSettings>
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Remote Python 3.6.7 (sftp://root@hanerx.tk:28930/etc/project-agent/venv/bin/python3) (3)" project-jdk-type="Python SDK" />
+  <component name="PyCharmProfessionalAdvertiser">
+    <option name="shown" value="true" />
+  </component>
 </project>
