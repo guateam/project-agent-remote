@@ -2221,7 +2221,7 @@ def get_recommend():
     """
     # 用户token
     token = request.values.get('token')
-
+    return jsonify({'code': 1, 'msg': 'test'})
     # 加载的次数
     pages = request.values.get('page')
     # 每次加载量
@@ -2323,22 +2323,25 @@ def classify_all_tag():
     :return:
     """
     # 需要获取的问题或文章tag
-    type = request.values.get('type')
+    type = int(request.values.get('type'))
     # 最终的数据
     data = {}
 
+    result = []
     db = Database()
     category = db.sql("select * from tags where type=1")
     for cate in category:
-        tag = cate['id']
+        tag = str(cate['id'])
+        target = []
         if type == 1:
-            target = db.sql("select * from questions where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
-                                                                                                              "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+            sts = "select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%' or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc"
+            target = db.sql(sts)
         elif type == 2:
-            target = db.sql("select * from article where tags like '%," + tag + ",% or tags like '" + tag + ",%'"
-                                                                                                            "or tags like '" + tag + "' or tags like '%," + tag + " order by edittime desc")
+            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
         result = flow_loading(target, 6, 1)
-        data[tag] = target
+
+        data[tag] = result
 
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
@@ -2365,7 +2368,7 @@ def flow_loading(data, each, page):
     if end_index >= len(data):
         end_index = len(data) - 1
 
-    return data[begin_index:end_index]
+    return data[begin_index:end_index+1]
 
 
 @app.route('/api/homepage/get_category')
@@ -2380,7 +2383,8 @@ def get_category():
     for value in tags:
         data.append({
             'name': value['name'],
-            'id': value['id']
+            'id': value['id'],
+            'page': 1
         })
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
