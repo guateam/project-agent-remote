@@ -3876,8 +3876,8 @@ def get_recommend_article():
     db = Database()
     user = db.get({'token': token}, 'users')
 
-    # rate_dir = '/etc/project-agent/CF/rate_rect/article_rate_rect.txt'
-    rate_dir = '../CF/rate_rect/article_rate_rect.txt'
+    rate_dir = '/etc/project-agent/CF/rate_rect/article_rate_rect.txt'
+    # rate_dir = '../CF/rate_rect/article_rate_rect.txt'
 
     if not user:
         return jsonify({'code': 0, 'msg': 'user is not exist'})
@@ -3892,7 +3892,7 @@ def get_recommend_article():
     recommend_article = []
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
-        ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 10)
+        ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 6)
         for id in ids:
             article = db.get({'articleID': id}, 'article')
             article.update({'tags': get_tags(article['tags'])})
@@ -4538,5 +4538,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
     # app.run(host='0.0.0.0', port=5000, debug=False)
