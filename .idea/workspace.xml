@@ -4,6 +4,7 @@
     <list default="true" id="d286ef92-5610-45b8-9c83-0b909be44095" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/API/api.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/api.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/API/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/API/db.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -12,7 +13,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="CoverageDataManager">
-    <SUITE FILE_PATH="coverage/remote_host$api.coverage" NAME="api Coverage Results" MODIFIED="1551857865982" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/API" />
+    <SUITE FILE_PATH="coverage/remote_host$api.coverage" NAME="api Coverage Results" MODIFIED="1551874003544" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/API" />
     <SUITE FILE_PATH="coverage/remote_host$cf.coverage" NAME="cf Coverage Results" MODIFIED="1550750274346" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/CF" />
   </component>
   <component name="DatabaseView">
@@ -34,8 +35,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/API/db.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="3400">
-              <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
+            <state relative-caret-position="348">
+              <caret line="92" column="25" lean-forward="true" selection-start-line="92" selection-start-column="25" selection-end-line="92" selection-end-column="25" />
             </state>
           </provider>
         </entry>
@@ -43,8 +44,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/API/api.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="179">
-              <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
+            <state relative-caret-position="300">
+              <caret line="2082" column="54" selection-start-line="2082" selection-start-column="54" selection-end-line="2082" selection-end-column="54" />
             </state>
           </provider>
         </entry>
@@ -67,8 +68,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>similar_re</find>
-      <find>build_question_rate_rect</find>
       <find>add_question</find>
       <find>build_question</find>
       <find>item_cf_ap</find>
@@ -92,11 +91,13 @@
       <find>tags</find>
       <find>get</find>
       <find>get_user_gro</find>
-      <find>get_recommend</find>
       <find>collect_article</find>
       <find>get_article</find>
       <find>add_article</find>
       <find>get_article_rate</find>
+      <find>get_group</find>
+      <find>pay_article</find>
+      <find>get_recommend</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -274,12 +275,13 @@
       <workItem from="1551760861080" duration="770000" />
       <workItem from="1551777637533" duration="8826000" />
       <workItem from="1551852492262" duration="6082000" />
-      <workItem from="1551859741743" duration="1044000" />
+      <workItem from="1551859741743" duration="1644000" />
+      <workItem from="1551867466404" duration="6714000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="85869000" />
+    <option name="totallyTimeSpent" value="93183000" />
   </component>
   <component name="TodoView">
     <todo-panel id="selected-file">
@@ -294,7 +296,7 @@
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.35607675" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.35980812" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -323,13 +325,6 @@
     <option name="version" value="1" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/API/db.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="3400">
-          <caret line="202" column="52" selection-start-line="202" selection-start-column="50" selection-end-line="202" selection-end-column="52" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/CF/cf.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="799">
@@ -340,10 +335,17 @@
     <entry file="file://$PROJECT_DIR$/API/config.py">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
+    <entry file="file://$PROJECT_DIR$/API/db.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="348">
+          <caret line="92" column="25" lean-forward="true" selection-start-line="92" selection-start-column="25" selection-end-line="92" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/API/api.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="179">
-          <caret line="2253" column="20" selection-start-line="2253" selection-start-column="4" selection-end-line="2253" selection-end-column="20" />
+        <state relative-caret-position="300">
+          <caret line="2082" column="54" selection-start-line="2082" selection-start-column="54" selection-end-line="2082" selection-end-column="54" />
         </state>
       </provider>
     </entry>

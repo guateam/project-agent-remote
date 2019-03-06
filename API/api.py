@@ -1972,22 +1972,22 @@ def add_article():
     cover = request.form['cover']
     description = request.form['description']
 
-    tag = tag1 + tag
+    db = Database()
 
     user = db.get({'token': token}, 'users')
-    if not user:
-        return jsonify({'code': -1, 'msg': 'the user is not exist'})
-    free_ = 1
-    if free == 'true':
-        free_ = 0
-    success = db.insert(
-        {'content': content, 'userID': user['userID'], 'title': title, 'tags': tags, 'free': free_, 'price': price,
-         'cover': cover, 'description': description},
-        'article')
-    if success:
-        return jsonify({'code': 1, 'msg': 'add success'})
-    else:
+    if user:
+
+        free_ = 1
+        if free == 'true':
+            free_ = 0
+        flag = db.insert(
+            {'content': content, 'userID': user['userID'], 'title': title, 'tags': tags, 'free': free_, 'price': price,
+             'cover': cover, 'description': description},
+            'article')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'add success'})
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
+    return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
 
 @app.route('/api/article/edit_article', methods=['POST'])
@@ -2045,6 +2045,42 @@ def collect_article():
         return jsonify({'code': 1, 'msg': 'collect success'})
     else:
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
+
+
+@app.route('/api/article/un_collect_article')
+def un_collect_article():
+    """
+    取消收藏文章
+    :return:
+    """
+    article_id = request.values.get('article_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.delete({'userID': user['userID'], 'articleID': article_id}, 'collectarticle')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/article/get_article_collect_state')
+def get_article_collect_state():
+    """
+    获取文章收藏状态
+    :return:
+    """
+    article_id = request.values.get('article_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.get({'userID': user['userID'], 'articleID': article_id}, 'collectarticle')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'not collected'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/article/complain_article')
@@ -2308,6 +2344,57 @@ def add_article_comment():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/article/pay_article')
+def pay_article():
+    """
+    为特定文章付费
+    :return:
+    """
+    article_id = request.values.get('article_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        article = db.get({'articleID': article_id}, 'article')
+        if article:
+            if article['free'] == 0:
+                pay = db.get({'from': user['userID'], 'receive': article['articleID'], 'type': 4}, 'pay_log')
+                if not pay:
+                    flag = change_account_balance(-int(article['price']), token)
+                    if flag == 1:
+                        flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4},
+                                         'pay_log')
+                        if flag:
+                            return jsonify({'code': 1, 'msg': 'success'})
+                        change_account_balance(int(article['price']), token)
+                        return jsonify({'code': -1, 'msg': 'unable to pay'})
+                    elif flag == -1:
+                        return jsonify({'code': -2, 'msg': 'not enough money'})
+                    return jsonify({'code': -1, 'msg': 'unable to pay'})
+                return jsonify({'code': 2, 'msg': 'already paid'})
+            return jsonify({'code': 2, 'msg': 'free article'})
+        return jsonify({'code': -3, 'msg': 'unknown article'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/article/get_paid')
+def get_paid():
+    """
+    获取是否付费
+    :return:
+    """
+    article_id = request.values.get('article_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        pay = db.get({'from': user['userID'], 'receive': article_id, 'type': 4}, 'pay_log')
+        if pay:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'not paid'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 """
     首页接口
 """
@@ -2323,7 +2410,6 @@ def get_recommend():
     """
     # 用户token
     token = request.values.get('token')
-    return jsonify({'code': 1, 'msg': 'test'})
     # 加载的次数
     pages = request.values.get('page')
     # 每次加载量
@@ -2440,7 +2526,7 @@ def classify_all_tag():
             target = db.sql(sts)
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
         result = flow_loading(target, 6, 1)
 
         data[tag] = result
@@ -2470,7 +2556,7 @@ def flow_loading(data, each, page):
     if end_index >= len(data):
         end_index = len(data) - 1
 
-    return data[begin_index:end_index+1]
+    return data[begin_index:end_index + 1]
 
 
 @app.route('/api/homepage/get_category')
@@ -3813,7 +3899,7 @@ def get_recommend_article():
     if not action:
         recommend_article = db.sql("select * from article order by edittime DESC limit 10")
 
-    result = flow_loading(recommend_article,each,page)
+    result = flow_loading(recommend_article, each, page)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
@@ -4449,5 +4535,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(host='0.0.0.0', port=5000, debug=False, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
     # app.run(host='0.0.0.0', port=5000, debug=False)
