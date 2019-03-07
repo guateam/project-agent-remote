@@ -2474,7 +2474,12 @@ def pay_article():
                         flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
                                           'amount': -int(article['price'])},
                                          'pay_log')
-                        if flag:
+                        flag1 = db.insert({'from': article['userID'], 'receive': article['articleID'], 'type': 5,
+                                           'amount': int(article['price']) * 0.8}, 'pay_log')
+                        author = db.get({'userID': article['userID']}, 'users')
+                        if author:
+                            change_account_balance(int(article['price']) * 0.8, author['token'])
+                        if flag and flag1:
                             return jsonify({'code': 1, 'msg': 'success'})
                         change_account_balance(int(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
