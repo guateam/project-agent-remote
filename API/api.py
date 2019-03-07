@@ -46,7 +46,7 @@ QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
 
 @app.route("/")
 def first_cry():
-    return jsonify({"code": 1})
+    return jsonify({"code": 1, 'msg': 'success'})
 
 
 def random_char():
@@ -174,8 +174,15 @@ def get_user():
             'user_id': user_id,
             'head_portrait': user['headportrait'],
             'user_group': user['usergroup'],
-            'exp': user['exp'],
-            'nickname': user['nickname']
+            'nickname': user['nickname'],
+            'level': get_level(user['exp']),
+            'exp': {'value': user['exp'], 'percent': user['exp'] / LEVEL_EXP[get_level(user['exp'])] * 100},
+            'answer': db.count({'userID': user['userID']}, 'answers'),
+            'follow': db.count({'userID': user['userID']}, 'followuser'),
+            'fans': db.count({'target': user['userID']}, 'followuser'),
+            'email': user['email'],
+            'description': user['description'],
+            'state': user['state'],
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
@@ -905,6 +912,8 @@ def history_pay():
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
     log = db.get({'from': user['userID']}, 'pay_log', 0)
+    for value in log:
+        value.update({'time': value['time'].strftime("%Y-%m-%d")})
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 
@@ -2487,9 +2496,15 @@ def pay_article():
                 if not pay:
                     flag = change_account_balance(-int(article['price']), token)
                     if flag == 1:
-                        flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4},
+                        flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
+                                          'amount': -int(article['price'])},
                                          'pay_log')
-                        if flag:
+                        flag1 = db.insert({'from': article['userID'], 'receive': article['articleID'], 'type': 5,
+                                           'amount': int(article['price']) * 0.8}, 'pay_log')
+                        author = db.get({'userID': article['userID']}, 'users')
+                        if author:
+                            change_account_balance(int(article['price']) * 0.8, author['token'])
+                        if flag and flag1:
                             return jsonify({'code': 1, 'msg': 'success'})
                         change_account_balance(int(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
@@ -4805,6 +4820,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000, debug=False)
