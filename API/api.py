@@ -4,7 +4,7 @@ import re
 import string
 import time
 
-from CF.cf import item_cf, set_similarity_vec
+from CF.cf import item_cf, set_similarity_vec,user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
 from API.OCR import ocr
 from flask import Flask, jsonify, request
@@ -24,6 +24,24 @@ CORS(app, supports_credentials=True)
 USER_GROUP = ['系统管理员', '从业者', '专家', '企业', '封禁', '待审核专家', '待审核企业']
 LEVEL_EXP = [0, 100, 1000, 10000, 100000, 1000000]
 ARTICLE_ALLOWED_GROUP = [0, 2, 3]
+
+# CF_PATH = "/etc/project-agent/CF/"
+CF_PATH = "../CF/"
+
+RATE_DIR = "rate_rect/"
+SIMILAR_DIR = "similar_rect/"
+
+USER_RATE_NAME = "user_rate_rect.txt"
+USER_ID_NAME = "user_id_list.txt"
+USER_SIMILAR_NAME = "user_similar_rect.txt"
+
+ARTICLE_RATE_NAME = "aritcle_rate_rect.txt"
+ARTICLE_ID_NAME = "article_id_list.txt"
+ARTICLE_SIMILAR_NAME = "article_similar_rect.txt"
+
+QUESTION_RATE_NAME = "question_rate_rect.txt"
+QUESTION_ID_NAME = "question_id_list.txt"
+QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
 
 
 @app.route("/")
@@ -886,7 +904,7 @@ def history_pay():
     if not user:
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
-    log = db.get({'from': user['userID']}, 'pay_log')
+    log = db.get({'from': user['userID']}, 'pay_log', 0)
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 
@@ -2555,9 +2573,6 @@ def get_recommend():
     # 每次加载量
     each_ = 6
 
-    # 用于推荐的评分矩阵路径，以api.py所在目录为根目录的表示
-    rate_dir = "/etc/project-agent/CF/rate_rect/question_rate_rect.txt"
-
     # 获取用户信息
     db = Database()
     user = db.get({'token': token}, 'users')
@@ -2572,11 +2587,11 @@ def get_recommend():
         # 将最近一次行为的问题作为参考,进行item_cf推荐
         target_question_id = the_question_action[0]['targetID']
         # 判断评分矩阵是否存在
-        if not os.path.exists(rate_dir):
+        if not os.path.exists(CF_PATH + RATE_DIR + QUESTION_RATE_NAME):
             return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
                                                ' build it by function build_questoin_rate_rect'})
         # 获得相似度降序排列的问题序列
-        recommend_question_ids = item_cf_api("question_similar_rect.txt", "question_id_list.txt",
+        recommend_question_ids = item_cf_api(QUESTION_SIMILAR_NAME, QUESTION_ID_NAME,
                                              target_question_id, 100)
 
         result = flow_loading(recommend_question_ids, each_, pages)
@@ -3176,9 +3191,24 @@ def item_cf_api(simi, id, target, num):
     """
 
     # 得到的推荐结果
-    result = item_cf("similar_rect/" + simi, "similar_rect/" + id, target, num)
+    result = item_cf(SIMILAR_DIR + simi, SIMILAR_DIR + id, target, num)
 
     return result
+
+@app.route('/api/algorithm/user_cf')
+def user_cf_api(simi,id,target,num):
+    """
+    调用user_cf算法推荐问题
+    :param simi: 相似度矩阵文件名(不包含路径)
+    :param id:对象id列表文件名(不包含路径)
+    :param target: 根据该ID进行相似推荐
+    :param num: 推荐数量
+    :return:
+    """
+    result = user_cf(SIMILAR_DIR + simi, SIMILAR_DIR + id, target, num)
+
+    return result
+
 
 
 @app.route('/api/algorithm/build_article_rate_rect')
@@ -3189,16 +3219,8 @@ def build_article_rate_rect():
     """
     # 为文章建立评分矩阵，评分矩阵的某一行是
     # 所有用户对某一篇文章的行为进行权值计算后得到的一个向量,所有文章对应一个向量组合成矩阵
-    # file_name = request.values.get("file_name")
-    file_name = "article_rate_rect.txt"
-    rate_path = "/etc/project-agent/CF/rate_rect/"
-    similar_path = "/etc/project-agent/CF/similar_rect/"
-    # rate_path = "../CF/rate_rect/"
-    # similar_path = "../CF/similar_rect/"
-    id_list = "article_id_list.txt"
-
     # 重置文件内容
-    with open(rate_path + file_name, "w") as f:
+    with open(CF_PATH + RATE_DIR + ARTICLE_RATE_NAME, "w") as f:
         pass
     db = Database()
     # targettype 对应的评分
@@ -3224,7 +3246,7 @@ def build_article_rate_rect():
                 rates[users[j]['userID']] = rate
 
         keys = rates.keys()
-        with open(rate_path + file_name, "a+") as f:
+        with open(CF_PATH + RATE_DIR + ARTICLE_RATE_NAME, "a+") as f:
             f.write("ID:" + str(article[i]['articleID']) + " rate:")
             rate_str = ""
             for key in keys:
@@ -3232,7 +3254,7 @@ def build_article_rate_rect():
             rate_str = rate_str[:-1]
             f.write(rate_str + "\n")
 
-    set_similarity_vec(rate_path, similar_path, file_name, id_list, "article_similar_rect.txt")
+    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, ARTICLE_RATE_NAME, ARTICLE_ID_NAME, ARTICLE_SIMILAR_NAME)
 
     return jsonify({"code": 1})
 
@@ -3245,15 +3267,10 @@ def build_question_rate_rect():
     """
     # 为问题建立评分矩阵，评分矩阵的某一行是
     # 所有用户对某一个问题的行为进行权值计算后得到的一个向量,所有问题对应一个向量组合成矩阵
-    # file_name = request.values.get("file_name")
-    file_name = "question_rate_rect.txt"
 
-    rate_path = "/etc/project-agent/CF/rate_rect/"
-    similar_path = "/etc/project-agent/CF/similar_rect/"
-    id_list = "question_id_list.txt"
 
     # 重置文件内容
-    with open(rate_path + file_name, "w") as f:
+    with open(CF_PATH + RATE_DIR + QUESTION_RATE_NAME, "w") as f:
         pass
     db = Database()
     # targettype 对应的评分
@@ -3279,7 +3296,7 @@ def build_question_rate_rect():
                 rates[users[j]['userID']] = rate
 
         keys = rates.keys()
-        with open(rate_path + file_name, "a+") as f:
+        with open(CF_PATH + RATE_DIR + QUESTION_RATE_NAME, "a+") as f:
             f.write("ID:" + str(questions[i]['questionID']) + " rate:")
             rate_str = ""
             for key in keys:
@@ -3287,7 +3304,48 @@ def build_question_rate_rect():
             rate_str = rate_str[:-1]
             f.write(rate_str + "\n")
 
-    set_similarity_vec(rate_path, similar_path, file_name, id_list, "question_similar_rect.txt")
+    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, QUESTION_RATE_NAME, QUESTION_ID_NAME, QUESTION_SIMILAR_NAME)
+
+    return jsonify({"code": 1})
+
+@app.route('/api/algorithm/build_user_rate_rect')
+def build_user_rate_rect():
+    """
+    建立用户对问题的评分矩阵
+    :return:
+    """
+    # 为用户建立评分矩阵，评分矩阵的某一行是
+    # 用户对所有问题的行为进行权值计算后得到的一个向量,所有问题对应一个向量组合成矩阵
+    # 重置文件内容
+    with open(CF_PATH + RATE_DIR + USER_RATE_NAME, "w") as f:
+        pass
+    db = Database()
+    # targettype 对应的评分
+    rate_dict = {11: 1.5, 12: 3, 13: 4, 14: 2}
+    questions = db.sql("select questionID from questions")
+    users = db.sql("select userID from users order by userID ASC")
+    for i in range(len(users)):
+        rates = {}
+        for j in range(len(questions)):
+            # 对于第i个用户的评分向量,没有参与的问题评分默认为0
+            rates[questions[j]['questionID']] = 0
+            acts = db.sql("select targettype from useraction where userID='%s' and targetID='%s' "
+                          "and targettype >= 11 and targettype <=15" % (users[i]['userID'], questions[j]['questionID']))
+            rate = 0
+            for k in range(len(acts)):
+                rate += rate_dict[acts[k]['targettype']]
+            rates[questions[j]['questionID']] = rate
+
+        keys = rates.keys()
+        with open(CF_PATH + RATE_DIR + USER_RATE_NAME, "a+") as f:
+            f.write("ID:" + str(users[i]['userID']) + " rate:")
+            rate_str = ""
+            for key in keys:
+                rate_str += str(key) + ";" + str(rates[key]) + ";"
+            rate_str = rate_str[:-1]
+            f.write(rate_str + "\n")
+
+    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, USER_RATE_NAME, USER_ID_NAME, USER_SIMILAR_NAME)
 
     return jsonify({"code": 1})
 
@@ -3773,17 +3831,80 @@ def get_board_recommend():
         """
             没对接cf算法，到时候对接一下cf算法
         """
+        userID = user['userID']
+        # 推荐的相似用户个数
+        num = 3
+        # 每个用户推荐的问题数量
+        q_num = 5
+
+        questionID = []
+        # 获取用户最可能感兴趣的问题id列表
+        similar_user = user_cf_api(USER_SIMILAR_NAME,USER_ID_NAME,userID,3)
+        for key in similar_user.keys():
+            rates = similar_user[key]
+            count = 0
+            for rate in rates:
+                if ++count > q_num:
+                    break
+                question_id = ""
+                for k in rate.keys():
+                    question_id = k
+                if question_id not in questionID:
+                    questionID.append(question_id)
+        tag_counter = {}
+        total_counter = 0
+
+        # 获取问题的类型并统计
+        for i in range(len(questionID)):
+            question = db.get({'questionID':questionID[i]},'questions')
+            if not question:
+                continue
+            if not question['tags']:
+                continue
+            tags = question['tags'].split(',')
+            total_counter += len(tags)
+            for tag in tags:
+                if tag in tag_counter.keys():
+                    tag_counter[tag] += 1
+                else:
+                    tag_counter[tag] = 1
+
+        # 得到用户的类型偏好比例
+        like_rate = []
+        for key in tag_counter.keys():
+            tag_counter[key] = tag_counter[key]/total_counter
+            like_rate.append({'id':key,'val':float(tag_counter[key])})
+
+
+        like_rate.sort(key=lambda x:x['val'],reverse=True)
+
+        # 获取最偏好的前3个类别
+        choosen_type = []
+        for i in range(0,3):
+            if i >= len(like_rate):
+                break
+            choosen_type.append(like_rate[i]['id'])
+
         demand = db.get({'state': 0}, 'demands_info', 0)
         """
             对接处
         """
+        result = []
         for value in demand:
-            value.update({
-                'tags': get_tags(value['tags']),
-                'usergroup': get_group(value['usergroup']),
-                'level': get_level(value['exp']),
-            })
-        return jsonify({'code': 1, 'msg': 'success', 'data': demand})
+            tags = value['tags']
+            if not tags:
+                continue
+            tags = tags.split(',')
+            # 求交集
+            tmp = [val for val in tags if val in choosen_type]
+            if tmp :
+                value.update({
+                    'tags': get_tags(value['tags']),
+                    'usergroup': get_group(value['usergroup']),
+                    'level': get_level(value['exp']),
+                })
+                result.append(value)
+        return jsonify({'code': 1, 'msg': 'success', 'data': result})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
@@ -4684,6 +4805,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000, debug=False)
+    # app.run(host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000, debug=False)
