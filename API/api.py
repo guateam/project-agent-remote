@@ -231,23 +231,59 @@ def follow_user():
     关注某个用户
     :return: code:-1 = 用户不存在, -2 = 被关注用户不存在, 0 = 关注失败, 1 = 关注成功
     """
+    token = request.values.get('token')
     user_id = request.values.get('user_id')
-    be_followed_user_id = request.values.get('followed_user_id')
 
     db = Database()
-    user = db.get({'userID': user_id}, 'users')
-    followed_user = db.get({'userID': be_followed_user_id}, 'users')
+    user = db.get({'token': token}, 'users')
+    followed_user = db.get({'userID': user_id}, 'users')
 
     if not user:
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
     if not followed_user:
         return jsonify({'code': -1, 'msg': 'the followed_user is not exist'})
 
-    success = db.insert({'userID': user_id, 'target': be_followed_user_id}, 'followuser')
+    success = db.insert({'userID': user['userID'], 'target': user_id}, 'followuser')
     if success:
         return jsonify({'code': 1, 'msg': 'follow success'})
     else:
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
+
+
+@app.route('/api/account/un_follow_user')
+def un_follow_user():
+    """
+    取消关注用户
+    :return:
+    """
+    user_id = request.values.get('user_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.delete({'userID': user['userID'], 'target': user_id}, 'followuser')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/account/get_user_follow_state')
+def get_user_follow_state():
+    """
+    获取用户关注情况
+    :return:
+    """
+    token = request.values.get('token')
+    user_id = request.values.get('user_id')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.get({'userID': user['userID'], 'target': user_id}, 'followuser')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unfollow'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/account/get_my_follow')
@@ -1650,6 +1686,52 @@ def agree_answer():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/answer/un_agree_answer')
+def un_agree_answer():
+    """
+    对特定答案取消点赞
+    :return:
+    """
+    answer_id = request.values.get('answer_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        answer = db.get({'answerID': answer_id}, 'answers')
+        if answer:
+            result = db.update({'answerID': answer_id}, {'agree': int(answer['agree']) - 1}, 'answers')
+            flag = db.delete({'userID': user['userID'], 'targetID': answer_id, 'targettype': 1}, 'useraction')
+            if result and flag:
+                return jsonify({'code': 1, 'msg': 'success'})
+            if result:
+                return jsonify({'code': -2, 'msg': 'unable to insert user action'})
+            if flag:
+                return jsonify({'code': -3, 'msg': 'unable to update agree number'})
+        return jsonify({'code': -1, 'msg': 'unknown answer'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/answer/get_answer_agree_state')
+def get_answer_agree_state():
+    """
+    获取点赞点踩情况
+    :return:
+    """
+    answer_id = request.values.get('answer_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        result = db.get({'userID': user['userID'], 'targetID': answer_id, 'targettype': 1}, 'useraction')
+        if result:
+            return jsonify({'code': 1, 'msg': 'success'})
+        result = db.get({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
+        if result:
+            return jsonify({'code': 2, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'no record'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 @app.route('/api/answer/agree_answer_comment')
 def agree_answer_comment():
     """
@@ -1828,6 +1910,31 @@ def disagree_answer():
         if answer:
             result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) + 1}, 'answers')
             flag = db.insert({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
+            if result and flag:
+                return jsonify({'code': 1, 'msg': 'success'})
+            if result:
+                return jsonify({'code': -2, 'msg': 'unable to insert user action'})
+            if flag:
+                return jsonify({'code': -3, 'msg': 'unable to update agree number'})
+        return jsonify({'code': -1, 'msg': 'unknown answer'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/answer/un_disagree_answer')
+def un_disagree_answer():
+    """
+        对特定答案取消点踩
+        :return: code(0=未知用户，-1=未知答案，-2=不能记录用户行为，-3=不能更新点踩数，1=成功)
+    """
+    answer_id = request.values.get('answer_id')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        answer = db.get({'answerID': answer_id}, 'answers')
+        if answer:
+            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - 1}, 'answers')
+            flag = db.delete({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
             if result and flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             if result:
@@ -2395,6 +2502,39 @@ def get_paid():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/article/get_article')
+def get_article():
+    """
+    获取文章详细信息
+    :return:
+    """
+    token = request.values.get('token')
+    article_id = request.values.get('article_id')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        article = db.get({'articleID': article_id}, 'articleinfo')
+        if article:
+            if article['free'] != 1:
+                pay = db.get({'from': user['userID'], 'receive': article_id, 'type': 4}, 'pay_log')
+                if not pay:
+                    return jsonify({'code': -1, 'msg': 'you have not paid'})
+            data = {
+                'title': article['title'],
+                'nickname': article['nickname'],
+                'user_id': article['userID'],
+                'article_id': article['articleID'],
+                'content': article['content'],
+                'head_portrait': article['headportrait'],
+                'edit_time': article['edittime'].strftime('%Y-%m-%d %H:%M:%S'),
+                'description': article['description'],
+                'cover': article['cover']
+            }
+            return jsonify({'code': 1, 'msg': 'success', 'data': data})
+        return jsonify({'code': -2, 'msg': 'unknow article'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 """
     首页接口
 """
@@ -2494,12 +2634,15 @@ def classify_by_tag():
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
 
     result = flow_loading(target, each, page)
+
+    for value in result:
+        value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
@@ -2529,6 +2672,9 @@ def classify_all_tag():
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
                                                                                                              "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
         result = flow_loading(target, 6, 1)
+        for value in result:
+            value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
+
         data.append(result)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
@@ -3045,10 +3191,10 @@ def build_article_rate_rect():
     # 所有用户对某一篇文章的行为进行权值计算后得到的一个向量,所有文章对应一个向量组合成矩阵
     # file_name = request.values.get("file_name")
     file_name = "article_rate_rect.txt"
-    # rate_path = "/etc/project-agent/CF/rate_rect/"
-    # similar_path = "/etc/project-agent/CF/similar_rect/"
-    rate_path = "../CF/rate_rect/"
-    similar_path = "../CF/similar_rect/"
+    rate_path = "/etc/project-agent/CF/rate_rect/"
+    similar_path = "/etc/project-agent/CF/similar_rect/"
+    # rate_path = "../CF/rate_rect/"
+    # similar_path = "../CF/similar_rect/"
     id_list = "article_id_list.txt"
 
     # 重置文件内容
