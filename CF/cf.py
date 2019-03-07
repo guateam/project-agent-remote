@@ -1,6 +1,6 @@
 from WSG.WordSegmentation import pred
 import numpy as np
-
+from enum import  Enum
 
 def cosine_similarity(vector1, vector2):
     """
@@ -127,6 +127,10 @@ def most_similar(simi_vec, item_ids, id, num=1):
             break
         idx += 1
 
+    # 若idx大于ID列表的长度，则说明没找到，直接返回空值
+    if idx >= len(item_ids):
+        return []
+
     # 遍历该物品的每个相似度，i的值也是该位置的物品在item_ids里面对应位置
     for i in range(len(simi_vec[idx])):
         most_idx = i
@@ -141,7 +145,8 @@ def most_similar(simi_vec, item_ids, id, num=1):
             temp = item_ids[i]
             item_ids[i] = item_ids[most_idx]
             item_ids[most_idx] = temp
-    if num > len(item_ids) - 1:
+
+    if int(num) > len(item_ids) - 1:
         num = len(item_ids) - 1
     return item_ids[1:num + 1]
 
@@ -179,6 +184,52 @@ def most_interest(similar_vec, rate_vec, k=1, m=1):
     # 排序，选出最感兴趣的m类物品
     sorted_interest = sorted(zip_interest.items(), key=lambda item: item[1], reverse=True)
     return sorted_interest[:m]
+
+def read_rate_rect(type,id):
+    """
+    读取指定的评分
+    :param type: 读取的类别，为CF_TYPE枚举量  1-用户  2-问题  3-文章
+    :param id: 根据该ID读取的评分
+    :return: 评分向量
+    """
+    rate_dir = CF_PATH + RATE_DIR
+    # 确认读取路径
+    if type == CF_TYPE.USER:
+        rate_dir += USER_RATE_NAME
+    elif type == CF_TYPE.QUESTION:
+        rate_dir += QUESTION_RATE_NAME
+    elif type == CF_TYPE.ARTICLE:
+        rate_dir += ARTICLE_RATE_NAME
+
+    all_rates = {}
+    with open(rate_dir,'r') as f:
+        lines = f.readlines()
+        for i in range(len(lines)):
+            lines[i].replace("\n", "")
+            # a包含ID和评分信息
+            a = lines[i].split(" ")
+            # 获取ID信息
+            read_id = a[0].split(':')
+            read_id = read_id[1]
+            # 若该行评分信息不是对于ID进行的，则跳过
+            if(read_id not in id):
+                continue
+            info = a[1].split(':')
+            info = info[1].split(';')
+
+            arr = []
+            for index in range(0,len(info),2):
+                rates = {}
+                rates[info[index]] = info[index+1]
+                arr.append(rates)
+
+            all_rates[read_id] = arr
+    # 返回的对象，{
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    # }
+    return all_rates
 
 
 def cf(self_vec, others_vec, k=1, m=1, item_vec=[]):
@@ -225,43 +276,83 @@ def item_cf(dirs,id_file, target, num):
     :param num: 推荐几个
     :return: 推荐的物品ID序列
     """
-    # simi_vec, item_ids = set_similarity_vec(rate_dir, dirs)
-    path = "/etc/project-agent/CF/"
-    simi_vec,item_ids = read_similarity_vec(path,dirs,id_file)
+
+    simi_vec,item_ids = read_similarity_vec(CF_PATH,dirs,id_file)
 
     idx = most_similar(simi_vec, item_ids, target, num)
     return idx
 
 
-# 以下为基于用户的使用样例
+def user_cf(dirs,id_file, target, num):
+    """
+    基于用户的cf 算法
+    :param dirs: 用户的相似度矩阵文件名
+    :param id_file: 用户的id序列文件
+    :param target: 为某个用户推荐
+    :param num: 推荐个数
+    :return: 推荐的用户和相应物品
+    """
+    # 获取用户相似度矩阵和用户id列表
+    simi_vec,item_ids = read_similarity_vec(CF_PATH,dirs,id_file)
+    # 得到推荐的相似用户
+    idx = most_similar(simi_vec,item_ids,target,int(num))
 
-# 用户id列表
-# uec = [1, 2, 3, 4]
-# # 对象类型
-# ivec = ["体育", "游戏", "财经", "军事", "娱乐"]
-# # 每个用户对每个对象类型的评分(在本系统中，对象是文章类型，评分是偏好程度，偏好程度可以根据点赞数量，浏览次数等等数据获得)
-# self_rvec = [1, 3, 0.4, 2.2, 1.3]
-# rvec = [
-#     [0.9, 3.3, 0.7, 1.9, 1],
-#     [0.8, 0.7, 1.5, 1.7, 3],
-#     [1.6, 0.4, 2.3, 1.0, 1.5],
-#     [0.7, 1.6, 1.1, 1.2, 0.3],
-# ]
-# print("输出名称：")
-# print(cf(self_rvec, rvec, 2, 2,ivec))
-#
-#
-# # 以下是item_cf的使用样例
-# # 首先建立物品的相似矩阵(根据物品的评分矩阵来获得，物品评分矩阵是所有用户对该物品的评分合集)
-# item = [
-#     [1,2,3,1,0],
-#     [3,2,1,2,1],
-#     [1,1,2,2,1],
-#     [2,1,2,3,1]
-# ]
-#
-# print(item_cf("item_simi.txt",0))
-#
-# print(read_similarity_vec())
+    # 获得推荐用户的评分信息
+    rate = read_rate_rect(CF_TYPE.USER,idx)
+    # 返回的对象，按评分降序排列{
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    #   用户id值：[{物品id值:评分},{物品id值:评分},...],
+    # }
+    keys = rate.keys()
+    for key in keys:
+        for i in range(len(rate[key])-1):
+            biggest = i
+            for j in range(i+1,len(rate[key])):
+                biggest_key = ""
+                now_key = ""
+                for k in rate[key][biggest].keys():
+                    biggest_key = k
+                for k in rate[key][j].keys():
+                    now_key = k
+
+                if float(rate[key][biggest][biggest_key]) < float(rate[key][j][now_key]):
+                    biggest = j
+            if biggest != j:
+                swap = rate[key][biggest]
+                rate[key][biggest] = rate[key][i]
+                rate[key][i] = swap
+
+    return rate
+
+
+"""
+常量区
+"""
+
+CF_PATH = "/etc/project-agent/CF/"
+CF_PATH = "../CF/"
+
+RATE_DIR = "rate_rect/"
+SIMILAR_DIR = "similar_rect/"
+
+USER_RATE_NAME = "user_rate_rect.txt"
+USER_ID_NAME = "user_id_list.txt"
+USER_SIMILAR_NAME = "user_similar_rect.txt"
+
+ARTICLE_RATE_NAME = "aritcle_rate_rect.txt"
+ARTICLE_ID_NAME = "article_id_list.txt"
+ARTICLE_SIMILAR_NAME = "article_similar_rect.txt"
+
+QUESTION_RATE_NAME = "question_rate_rect.txt"
+QUESTION_ID_NAME = "question_id_list.txt"
+QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
+
+class CF_TYPE(Enum):
+    USER = 1
+    QUESTION = 2
+    ARTICLE = 3
+
+
 if __name__ == '__main__':
     set_similarity_vec('./rate_rect/question_rate_rect.txt')
