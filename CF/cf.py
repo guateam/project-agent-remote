@@ -331,7 +331,7 @@ def user_cf(dirs,id_file, target, num):
 """
 
 CF_PATH = "/etc/project-agent/CF/"
-CF_PATH = "../CF/"
+# CF_PATH = "../CF/"
 
 RATE_DIR = "rate_rect/"
 SIMILAR_DIR = "similar_rect/"

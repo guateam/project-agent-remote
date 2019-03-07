@@ -25,8 +25,8 @@ USER_GROUP = ['系统管理员', '从业者', '专家', '企业', '封禁', '待
 LEVEL_EXP = [0, 100, 1000, 10000, 100000, 1000000]
 ARTICLE_ALLOWED_GROUP = [0, 2, 3]
 
-# CF_PATH = "/etc/project-agent/CF/"
-CF_PATH = "../CF/"
+CF_PATH = "/etc/project-agent/CF/"
+# CF_PATH = "../CF/"
 
 RATE_DIR = "rate_rect/"
 SIMILAR_DIR = "similar_rect/"
