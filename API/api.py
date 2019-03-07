@@ -28,7 +28,7 @@ ARTICLE_ALLOWED_GROUP = [0, 2, 3]
 
 @app.route("/")
 def first_cry():
-    return jsonify({"code": 1})
+    return jsonify({"code": 1, 'msg': 'success'})
 
 
 def random_char():
@@ -886,7 +886,7 @@ def history_pay():
     if not user:
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
-    log = db.get({'from': user['userID']}, 'pay_log')
+    log = db.get({'from': user['userID']}, 'pay_log', 0)
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 
@@ -4684,6 +4684,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(host='0.0.0.0', port=5000, ssl_context=(
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
         '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
     # app.run(host='0.0.0.0', port=5000, debug=False)
