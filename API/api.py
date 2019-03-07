@@ -156,8 +156,15 @@ def get_user():
             'user_id': user_id,
             'head_portrait': user['headportrait'],
             'user_group': user['usergroup'],
-            'exp': user['exp'],
-            'nickname': user['nickname']
+            'nickname': user['nickname'],
+            'level': get_level(user['exp']),
+            'exp': {'value': user['exp'], 'percent': user['exp'] / LEVEL_EXP[get_level(user['exp'])] * 100},
+            'answer': db.count({'userID': user['userID']}, 'answers'),
+            'follow': db.count({'userID': user['userID']}, 'followuser'),
+            'fans': db.count({'target': user['userID']}, 'followuser'),
+            'email': user['email'],
+            'description': user['description'],
+            'state': user['state'],
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
