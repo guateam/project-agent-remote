@@ -887,6 +887,8 @@ def history_pay():
         return jsonify({'code': -1, 'msg': 'the user is not exist'})
 
     log = db.get({'from': user['userID']}, 'pay_log', 0)
+    for value in log:
+        value.update({'time': value['time'].strftime("%Y-%m-%d")})
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 
@@ -2469,7 +2471,8 @@ def pay_article():
                 if not pay:
                     flag = change_account_balance(-int(article['price']), token)
                     if flag == 1:
-                        flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4},
+                        flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
+                                          'amount': -int(article['price'])},
                                          'pay_log')
                         if flag:
                             return jsonify({'code': 1, 'msg': 'success'})
