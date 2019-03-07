@@ -1234,6 +1234,17 @@ def get_priced_answer_list():
     # 未支付用户则无权限获取答案
     return jsonify({'code': 0, 'msg': 'the user have not paid this question'})
 
+@app.route("/api/questions/get_answer_by_userid")
+def get_answer_by_userid():
+    """
+    根据userid获取回答
+    :return: code 0-获取失败  1-获取成功
+    """
+    user_id = request.values.get("user_id")
+    db = Database()
+    answer = db.get({'userID':user_id},'answers')
+    return jsonify({'code': 1, 'msg':'success', 'data':answer})
+
 
 @app.route('/api/questions/pay_question')
 def pay_question():
@@ -1299,6 +1310,14 @@ def add_question_comment():
             return jsonify({'code': -2, 'msg': 'unable to insert comment'})
         return jsonify({'code': -1, 'msg': 'unable to find question'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/questions/get_commment_by_userid')
+def get_comment_by_userid():
+    user_id = request.values.get("user_id")
+    db = Database()
+    comments = db.get({'userID': user_id}, 'questioncomments')
+    return jsonify({'code': 1, 'msg': 'success', 'data': comments})
 
 
 @app.route('/api/questions/get_question_comment')
@@ -2179,6 +2198,20 @@ def collect_article():
         return jsonify({'code': 1, 'msg': 'collect success'})
     else:
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
+
+
+@app.route('/api/article/get_article_by userid')
+def get_article_by_userid():
+    user_id = request.values.get("user_id")
+    db = Database()
+    article = db.sql("select * from article where userID='%s'" % user_id)
+    for val in article:
+        if val['free'] == 0:
+            val.update({
+                'content':"付费内容"
+            })
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': article})
 
 
 @app.route('/api/article/un_collect_article')
@@ -4820,6 +4853,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000, debug=False)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000, debug=False)
