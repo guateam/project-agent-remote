@@ -3,6 +3,7 @@ import random
 import re
 import string
 import time
+import datetime
 
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
@@ -25,8 +26,8 @@ USER_GROUP = ['系统管理员', '从业者', '专家', '企业', '封禁', '待
 LEVEL_EXP = [0, 100, 1000, 10000, 100000, 1000000]
 ARTICLE_ALLOWED_GROUP = [0, 2, 3]
 
-CF_PATH = "/etc/project-agent/CF/"
-# CF_PATH = "../CF/"
+# CF_PATH = "/etc/project-agent/CF/"
+CF_PATH = "../CF/"
 
 RATE_DIR = "rate_rect/"
 SIMILAR_DIR = "similar_rect/"
@@ -2791,11 +2792,39 @@ def get_category():
 @app.route('/api/homepage/get_hot_search')
 def get_hot_search():
     """
-    获取热搜推荐(假的)
+    获取热搜推荐
     :return:code(0=未知问题，1=成功)
     """
+    db = Database()
+    data = db.sql("select * from search_word order by time desc limit 10")
+    for it in data:
+        it.update({
+            'close': False
+        })
 
-    return jsonify({'code': 1, 'msg': 'success', 'data': ''})
+    return jsonify({'code': 1, 'msg': 'success', 'data': data})
+
+
+@app.route('/api/homepage/get_history_search')
+def get_history_search():
+    """
+    获取历史搜索
+    :return:code(0=用户不存在，1=成功)
+    """
+    token = request.values.get("token")
+    db = Database()
+    user = db.get({'token':token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'user is not found'})
+
+    data = db.sql("select * from history_search where userID='%s' group by content order by time desc limit 10" % user['userID'])
+
+    for it in data:
+        it.update({
+            'close': False
+        })
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
 
 """
@@ -3425,13 +3454,25 @@ def before_vague_search_api():
 def vague_search_api():
     # 获取输入内容
     input_word = request.values.get('word')
-    # 搜索什么内容  question-搜索问题  article-搜索文章
+    # 搜索什么内容  question-搜索问题  article-搜索文章 user-用户
     search_type = request.values.get('type')
-
+    # 获取用户 token
+    token = request.values.get('token')
     # 以下内容为根据当前搜索内容更新搜索表里面相印搜索项的热度
 
     # 获取该输入内容是否存在与热搜项
     db = Database()
+
+    user = db.sql("select userID from users where token='%s'" % token)
+    if user:
+        history = db.sql("select * from history_search where userID='%s' and content='%s' order by time desc" % (user[0]['userID'],input_word) )
+        if history:
+            now_time = time.localtime(time.time())
+            now_time = time.strftime("%Y-%m-%d %H:%M:%S",now_time)
+            db.sql("update history_search set time='%s' where userID='%s' and content='%s'" %(now_time,user[0]['userID'],input_word))
+        else:
+            db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'],input_word))
+
     word = db.get({'content': input_word}, 'search_word')
     # 若存在，则搜索次数增加一次
     if word:
@@ -3447,7 +3488,7 @@ def vague_search_api():
             db.update({'content': result[0]['content']}, {'time': result[0]['time'] + 1}, 'search_word')
         # 否则认为该输入项为一个新的搜索项，加入搜索表中
         else:
-            db.insert({'content': input_word})
+            db.insert({'content': input_word},'search_word')
 
     # 以下为根据搜索项模糊搜索对应文章或问题
     data = []
@@ -3459,7 +3500,7 @@ def vague_search_api():
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['title'] + ',' + each['description'])
-            each.update({'tfidf': tfidf})
+            each.update({'tags': get_tags(each['tags']),'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
             output.append(each)
     elif search_type == 'article':
         # 找到包含输入词语的文章
@@ -3467,7 +3508,13 @@ def vague_search_api():
         # 将文章内容作为文本，输入词语作为关键词计算每一篇文章的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['content'])
-            each.update({'tfidf': tfidf})
+            each.update(
+                {'tags': get_tags(each['tags']), 'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
+            output.append(each)
+    elif search_type == 'user':
+        data = db.like({'nickname': input_word}, 'users')
+        for each in data:
+            each.update({'tfidf': 0})
             output.append(each)
 
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
