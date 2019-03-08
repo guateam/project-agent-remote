@@ -3702,9 +3702,10 @@ def add_demand():
         price = request.form['price']
         tags = request.form['tags']
         title = request.form['title']
+        cover = request.form['cover']
         flag = db.insert(
             {'userID': user['userID'], 'content': content, 'allowedUserGroup': allowed_user, 'price': price,
-             'title': title,
+             'title': title, 'cover': cover,
              'tags': tags}, 'demands')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
