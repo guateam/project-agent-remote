@@ -4,7 +4,7 @@ import re
 import string
 import time
 
-from CF.cf import item_cf, set_similarity_vec,user_cf
+from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
 from API.OCR import ocr
 from flask import Flask, jsonify, request
@@ -1234,6 +1234,7 @@ def get_priced_answer_list():
     # 未支付用户则无权限获取答案
     return jsonify({'code': 0, 'msg': 'the user have not paid this question'})
 
+
 @app.route("/api/questions/get_answer_by_userid")
 def get_answer_by_userid():
     """
@@ -1242,8 +1243,8 @@ def get_answer_by_userid():
     """
     user_id = request.values.get("user_id")
     db = Database()
-    answer = db.get({'userID':user_id},'answers')
-    return jsonify({'code': 1, 'msg':'success', 'data':answer})
+    answer = db.get({'userID': user_id}, 'answers')
+    return jsonify({'code': 1, 'msg': 'success', 'data': answer})
 
 
 @app.route('/api/questions/pay_question')
@@ -2208,7 +2209,7 @@ def get_article_by_userid():
     for val in article:
         if val['free'] == 0:
             val.update({
-                'content':"付费内容"
+                'content': "付费内容"
             })
 
     return jsonify({'code': 1, 'msg': 'success', 'data': article})
@@ -2449,7 +2450,8 @@ def get_article_info():
             'read': db.count({'targettype': 21, 'targetID': article['articleID']}, 'useraction'),
             'price': article['price'],
             'free': article['free'],
-            'rate': get_article_rate(article_id)
+            'rate': get_article_rate(article_id),
+            'user_id': article['userID']
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown article'})
@@ -3243,8 +3245,9 @@ def item_cf_api(simi, id, target, num):
 
     return result
 
+
 @app.route('/api/algorithm/user_cf')
-def user_cf_api(simi,id,target,num):
+def user_cf_api(simi, id, target, num):
     """
     调用user_cf算法推荐问题
     :param simi: 相似度矩阵文件名(不包含路径)
@@ -3256,7 +3259,6 @@ def user_cf_api(simi,id,target,num):
     result = user_cf(SIMILAR_DIR + simi, SIMILAR_DIR + id, target, num)
 
     return result
-
 
 
 @app.route('/api/algorithm/build_article_rate_rect')
@@ -3302,7 +3304,8 @@ def build_article_rate_rect():
             rate_str = rate_str[:-1]
             f.write(rate_str + "\n")
 
-    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, ARTICLE_RATE_NAME, ARTICLE_ID_NAME, ARTICLE_SIMILAR_NAME)
+    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, ARTICLE_RATE_NAME, ARTICLE_ID_NAME,
+                       ARTICLE_SIMILAR_NAME)
 
     return jsonify({"code": 1})
 
@@ -3315,7 +3318,6 @@ def build_question_rate_rect():
     """
     # 为问题建立评分矩阵，评分矩阵的某一行是
     # 所有用户对某一个问题的行为进行权值计算后得到的一个向量,所有问题对应一个向量组合成矩阵
-
 
     # 重置文件内容
     with open(CF_PATH + RATE_DIR + QUESTION_RATE_NAME, "w") as f:
@@ -3352,9 +3354,11 @@ def build_question_rate_rect():
             rate_str = rate_str[:-1]
             f.write(rate_str + "\n")
 
-    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, QUESTION_RATE_NAME, QUESTION_ID_NAME, QUESTION_SIMILAR_NAME)
+    set_similarity_vec(CF_PATH + RATE_DIR, CF_PATH + SIMILAR_DIR, QUESTION_RATE_NAME, QUESTION_ID_NAME,
+                       QUESTION_SIMILAR_NAME)
 
     return jsonify({"code": 1})
+
 
 @app.route('/api/algorithm/build_user_rate_rect')
 def build_user_rate_rect():
@@ -3859,10 +3863,31 @@ def sign_to_demand():
     user = db.get({'token': token}, 'users')
     if user:
         demand_id = request.values.get('demand_id')
-        flag = db.insert({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
+        demand = db.get({'demandID': demand_id}, 'demands')
+        if str(user['usergroup']) in demand['allowedUserGroup'].split(','):
+            flag = db.insert({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
+            if flag:
+                return jsonify({'code': 1, 'msg': 'success'})
+            return jsonify({'code': -1, 'msg': 'unable to sign'})
+        return jsonify({'code': -2, 'msg': 'you are not allowed'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/board/get_sign_state')
+def get_sign_state():
+    """
+    查看报名状态
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        demand_id = request.values.get('demand_id')
+        flag = db.get({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
         if flag:
-            return jsonify({'code': 1, 'msg': 'success'})
-        return jsonify({'code': -1, 'msg': 'unable to sign'})
+            return jsonify({'code': 1, 'msg': 'success', 'data': flag})
+        return jsonify({'code': -1, 'msg': 'not signed'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
@@ -3887,7 +3912,7 @@ def get_board_recommend():
 
         questionID = []
         # 获取用户最可能感兴趣的问题id列表
-        similar_user = user_cf_api(USER_SIMILAR_NAME,USER_ID_NAME,userID,3)
+        similar_user = user_cf_api(USER_SIMILAR_NAME, USER_ID_NAME, userID, 3)
         for key in similar_user.keys():
             rates = similar_user[key]
             count = 0
@@ -3904,7 +3929,7 @@ def get_board_recommend():
 
         # 获取问题的类型并统计
         for i in range(len(questionID)):
-            question = db.get({'questionID':questionID[i]},'questions')
+            question = db.get({'questionID': questionID[i]}, 'questions')
             if not question:
                 continue
             if not question['tags']:
@@ -3920,15 +3945,14 @@ def get_board_recommend():
         # 得到用户的类型偏好比例
         like_rate = []
         for key in tag_counter.keys():
-            tag_counter[key] = tag_counter[key]/total_counter
-            like_rate.append({'id':key,'val':float(tag_counter[key])})
+            tag_counter[key] = tag_counter[key] / total_counter
+            like_rate.append({'id': key, 'val': float(tag_counter[key])})
 
-
-        like_rate.sort(key=lambda x:x['val'],reverse=True)
+        like_rate.sort(key=lambda x: x['val'], reverse=True)
 
         # 获取最偏好的前3个类别
         choosen_type = []
-        for i in range(0,3):
+        for i in range(0, 3):
             if i >= len(like_rate):
                 break
             choosen_type.append(like_rate[i]['id'])
@@ -3945,13 +3969,15 @@ def get_board_recommend():
             tags = tags.split(',')
             # 求交集
             tmp = [val for val in tags if val in choosen_type]
-            if tmp :
+            if tmp:
                 value.update({
                     'tags': get_tags(value['tags']),
                     'usergroup': get_group(value['usergroup']),
                     'level': get_level(value['exp']),
+                    'allowed_user_group': value['allowedUserGroup'].split(',')
                 })
-                result.append(value)
+                if str(user['usergroup']) in value['allowedUserGroup'].split(','):
+                    result.append(value)
         return jsonify({'code': 1, 'msg': 'success', 'data': result})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -4009,9 +4035,65 @@ def get_demand():
             'tags': get_tags(demand['tags']),
             'usergroup': get_group(demand['usergroup']),
             'level': get_level(demand['exp']),
+            'read': db.count({'targettype': 52}, 'useraction'),
+            'collect': db.count({'targettype': 53}, 'useraction')
         })
         return jsonify({'code': 1, 'msg': 'success', 'data': demand})
     return jsonify({'code': 0, 'msg': 'unknown demand'})
+
+
+@app.route('/api/board/collect_demand')
+def collect_demand():
+    """
+    收藏需求
+    :return:
+    """
+    demand_id = request.values.get('demand_id')
+    db = Database()
+    token = request.values.get('token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.insert({'targettype': 53, 'userID': user['userID'], 'targetID': demand_id}, 'useraction')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/board/un_collect_demand')
+def un_collect_demand():
+    """
+    取消需求收藏
+    :return:
+    """
+    demand_id = request.values.get('demand_id')
+    db = Database()
+    token = request.values.get('token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.delete({'targettype': 53, 'userID': user['userID'], 'targetID': demand_id}, 'useraction')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/board/get_demand_collect_state')
+def get_demand_collect_state():
+    """
+    获取需求收藏状态
+    :return:
+    """
+    demand_id = request.values.get('demand_id')
+    db = Database()
+    token = request.values.get('token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.get({'targettype': 53, 'userID': user['userID'], 'targetID': demand_id}, 'useraction')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/board/get_demands_by_tag')
@@ -4022,19 +4104,13 @@ def get_demands_by_tag():
     """
     tag_id = request.values.get('tag_id')
     db = Database()
-    demands = db.get({'state': 0}, 'demands_info', 0)
+    articles = db.get({'state': 0}, 'demands_info', 0)
     data = []
-    for value in demands:
-        tags = get_tags(value['tags'])
-        for tag in tags:
-            if tag['id'] == tag_id:
-                value.update({
-                    'tags': get_tags(value['tags']),
-                    'usergroup': get_group(value['usergroup']),
-                    'level': get_level(value['exp']),
-                })
-                data.append(value)
-                break
+    for value in articles:
+        tags = value['tags'].split(',')
+        if tag_id in tags:
+            value.update({'tags': get_tags(value['tags'])})
+            data.append(value)
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
 
@@ -4853,6 +4929,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000, debug=False)
