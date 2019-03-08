@@ -3622,16 +3622,33 @@ def get_click_info():
     获取点击量图表（还没想好怎么写）
     :return:
     """
-    pass
-
-
-@app.route('/api/specialist/get_fans_info')
-def get_fans_info():
-    """
-    获取关注量增减图表（同样没想好怎么写）
-    :return:
-    """
-    pass
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        article = db.get({'userID': user['userID']}, 'article', 0)
+        article_read = 0
+        agree = 0
+        collect = 0
+        for value in article:
+            article_read += db.count({'targettype': 21, 'targetID': value['articleID']}, 'useraction')
+            collect += db.count({'articleID': value['articleID']}, 'collectarticle')
+        fan = db.count({'target': user['userID']}, 'followuser')
+        answer = db.get({'userID': user['userID']}, 'answers', 0)
+        answer_read = 0
+        for value in answer:
+            answer_read += db.count({'targettype': 11, 'targetID': value['answerID']}, 'useraction')
+            collect += db.count({'answerID': value['answerID']}, 'collectanswer')
+            agree += value['agree']
+        pay = 0
+        pay_log = db.get({'userID': user['userID']}, 'pay_log', 0)
+        for value in pay_log:
+            if value['amount'] > 0:
+                pay += value['amount']
+        return jsonify({'code': 1, 'msg': 'success',
+                        'data': {'article_read': article_read, 'fan': fan, 'answer_read': answer_read, 'pay': pay,
+                                 'collect': collect, 'agree': agree}})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/specialist/add_order', methods=['POST'])
