@@ -50,9 +50,9 @@ QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
 
 # @app.before_request
 # def before_request():
-    # if request.url.startswith('http://'):
-    #     url = request.url.replace('http://', 'https://', 1)
-    #     return redirect(url, code=301)
+# if request.url.startswith('http://'):
+#     url = request.url.replace('http://', 'https://', 1)
+#     return redirect(url, code=301)
 
 
 @app.route("/")
@@ -86,13 +86,14 @@ def new_token():
     用户接口
 """
 
+
 @app.route('/api/account/wx_openid')
 def openid():
     appid = request.values.get('appid')
     appsecret = request.values.get('secret')
     code = request.values.get('code')
 
-    url = "https://api.weixin.qq.com/sns/jscode2session?appid=" + appid + "&secret=" + appsecret + "&js_code="\
+    url = "https://api.weixin.qq.com/sns/jscode2session?appid=" + appid + "&secret=" + appsecret + "&js_code=" \
           + code + "&grant_type=authorization_code"
     req = urllib.request.Request(url)
     data = urllib.request.urlopen(req).read()
@@ -2758,12 +2759,12 @@ def classify_by_tag():
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
-                        % (begin,end))
+                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        % (begin, end))
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
-                        % (begin,end))
+                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        % (begin, end))
 
     # result = flow_loading(target, each, page)
 
@@ -2794,12 +2795,12 @@ def classify_all_tag():
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
-                             % (1,6))
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            % (1, 6))
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
-                             % (1,6))
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            % (1, 6))
 
         for value in result:
             value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
@@ -2823,7 +2824,7 @@ def flow_loading(data, each, page, mode=0):
     # 最多流加载几次
     max_page = int(len(data) / each) + 1
     # mode = 0时 超过最高加载次数的从第一次开始循环加载
-    if(mode != 0):
+    if (mode != 0):
         return []
 
     page = max_page if (page % max_page) == 0 else page % max_page
@@ -2979,7 +2980,7 @@ def get_chat_box():
             data = message2
         else:
             data = []
-        sorted(data, key=lambda a: a['post_time'])
+        data = sorted(data, key=lambda a: a['post_time'])
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -3566,7 +3567,7 @@ def vague_search_api():
         else:
             db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'], input_word))
 
-    word = db.get({'content': input_word}, 'search_word',0)
+    word = db.get({'content': input_word}, 'search_word', 0)
     # 若存在，则搜索次数增加一次
     if word:
         db.update({'content': input_word}, {'time': word[0]['time'] + 1}, 'search_word')
@@ -3588,27 +3589,27 @@ def vague_search_api():
     output = []
     # 根据搜索类型不同进行区分处理
     if search_type == "question":
-        output = vg_search(0,input_word,page)
+        output = vg_search(0, input_word, page)
     elif search_type == "article":
-        output = vg_search(1,input_word,page)
+        output = vg_search(1, input_word, page)
     elif search_type == "user":
-        output = vg_search(2,input_word,page)
-    else :
-        output.append(vg_search(0,input_word,page))
-        output.append(vg_search(1,input_word,page))
-        output.append(vg_search(2,input_word,page))
+        output = vg_search(2, input_word, page)
+    else:
+        output.append(vg_search(0, input_word, page))
+        output.append(vg_search(1, input_word, page))
+        output.append(vg_search(2, input_word, page))
 
     return jsonify({'code': 1, 'msg': 'success', 'data': output})
 
 
-def vg_search(search_type,input_word,page):
+def vg_search(search_type, input_word, page):
     db = Database()
     output = []
     each_page = 6
 
     if search_type == 0:
         # 找到包含输入词语的问题
-        data = db.sql("select * from questions where title like '%" + input_word +"%' order by edittime desc ")
+        data = db.sql("select * from questions where title like '%" + input_word + "%' order by edittime desc ")
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['title'] + ',' + each['description'])
@@ -3617,7 +3618,8 @@ def vg_search(search_type,input_word,page):
             output.append(each)
     elif search_type == 1:
         # 找到包含输入词语的文章
-        data = db.sql("select * from article where title like '%" + input_word +"%' or content like '%" +input_word +"%'  order by edittime desc ")
+        data = db.sql(
+            "select * from article where title like '%" + input_word + "%' or content like '%" + input_word + "%'  order by edittime desc ")
         # 将文章内容作为文本，输入词语作为关键词计算每一篇文章的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['content'])
@@ -3633,7 +3635,7 @@ def vg_search(search_type,input_word,page):
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
     output.sort(key=lambda it: it['tfidf'], reverse=True)
 
-    output = flow_loading(output,each_page,page)
+    output = flow_loading(output, each_page, page)
     return output
 
 
@@ -3858,6 +3860,26 @@ def request_upgrade():
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to request'})
         return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/specialist/get_historical_orders')
+def get_historical_orders():
+    """
+    获取历史咨询
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        orders = db.get({'userID': user['userID']}, 'orders_info', 0)
+        for order in orders:
+            order.update(
+                {'user_user_group': get_group(order['user_user_group']), 'user_level': get_level(order['user_exp']),
+                 'specialist_user_group': get_group(order['specialist_user_group']),
+                 'specialist_level': get_level(order['specialist_exp'])})
+        return jsonify({'code': 1, 'msg': 'success', 'data': orders})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 """
@@ -4159,7 +4181,7 @@ def get_board_recommend():
                     'level': get_level(value['exp']),
                     'allowed_user_group': value['allowedUserGroup'].split(',')
                 })
-                if (str(user['usergroup']) in value['allowedUserGroup'].split(',') ) and (value not in result):
+                if (str(user['usergroup']) in value['allowedUserGroup'].split(',')) and (value not in result):
                     result.append(value)
 
         result = flow_loading(result, each, page)
