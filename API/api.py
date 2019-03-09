@@ -4,6 +4,9 @@ import re
 import string
 import time
 import datetime
+import urllib.request
+import urllib.parse
+import urllib.error
 
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
@@ -45,11 +48,11 @@ QUESTION_ID_NAME = "question_id_list.txt"
 QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
 
 
-@app.before_request
-def before_request():
-    if request.url.startswith('http://'):
-        url = request.url.replace('http://', 'https://', 1)
-        return redirect(url, code=301)
+# @app.before_request
+# def before_request():
+    # if request.url.startswith('http://'):
+    #     url = request.url.replace('http://', 'https://', 1)
+    #     return redirect(url, code=301)
 
 
 @app.route("/")
@@ -82,6 +85,18 @@ def new_token():
 """
     用户接口
 """
+
+@app.route('/api/account/wx_openid')
+def openid():
+    appid = request.values.get('appid')
+    appsecret = request.values.get('secret')
+    code = request.values.get('code')
+
+    url = "https://api.weixin.qq.com/sns/jscode2session?appid=" + appid + "&secret=" + appsecret + "&js_code="\
+          + code + "&grant_type=authorization_code"
+    req = urllib.request.Request(url)
+    data = urllib.request.urlopen(req).read()
+    return data
 
 
 @app.route('/api/account/get_user_group')
@@ -1048,7 +1063,7 @@ def add_priced_question():
     token = request.form['token']
     price = request.form['price']
     db = Database()
-    res = change_account_balance(-float(price), token)
+    res = change_account_balance(-int(price), token)
     if res == 1:
         user = db.get({'token': token}, 'users')
         if user:
@@ -1061,7 +1076,7 @@ def add_priced_question():
                              'questions')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
-            change_account_balance(-float(price), token)
+            change_account_balance(-int(price), token)
             return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
     elif res == 0:
@@ -2538,19 +2553,19 @@ def pay_article():
             if article['free'] == 0:
                 pay = db.get({'from': user['userID'], 'receive': article['articleID'], 'type': 4}, 'pay_log')
                 if not pay:
-                    flag = change_account_balance(-float(article['price']), token)
+                    flag = change_account_balance(-int(article['price']), token)
                     if flag == 1:
                         flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
-                                          'amount': -float(article['price'])},
+                                          'amount': -int(article['price'])},
                                          'pay_log')
                         flag1 = db.insert({'from': article['userID'], 'receive': article['articleID'], 'type': 5,
-                                           'amount': float(article['price']) * 0.8}, 'pay_log')
+                                           'amount': int(article['price']) * 0.8}, 'pay_log')
                         author = db.get({'userID': article['userID']}, 'users')
                         if author:
-                            change_account_balance(float(article['price']) * 0.8, author['token'])
+                            change_account_balance(int(article['price']) * 0.8, author['token'])
                         if flag and flag1:
                             return jsonify({'code': 1, 'msg': 'success'})
-                        change_account_balance(float(article['price']), token)
+                        change_account_balance(int(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
                     elif flag == -1:
                         return jsonify({'code': -2, 'msg': 'not enough money'})
@@ -2702,23 +2717,36 @@ def classify_by_tag():
     # 每次调用返回几个
     each = 6
     # 第几次调用(相当于第几页/第几次流加载），第一次为 1
-    page = request.values.get('page')
+    page = int(request.values.get('page'))
 
     db = Database()
 
+    # if type == 1:
+    #     target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+    # elif type == 2:
+    #     target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+    #
+    # result = flow_loading(target, each, page)
+    begin = (page - 1) * each + 1
+    end = page * each
+
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        % (begin,end))
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        % (begin,end))
 
-    result = flow_loading(target, each, page)
+    # result = flow_loading(target, each, page)
 
-    for value in result:
+    for value in target:
         value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
-    return jsonify({'code': 1, 'msg': 'success', 'data': result})
+    return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
 
 @app.route('/api/homepage/classify_all_tag')
@@ -2736,16 +2764,19 @@ def classify_all_tag():
     # 流加载后的数据
     result = []
     db = Database()
+
     category = db.sql("select * from tags where type=1")
     for cate in category:
         tag = str(cate['id'])
         if type == 1:
-            sts = "select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%' or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc"
-            target = db.sql(sts)
+            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                             % (1,6))
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
-        result = flow_loading(target, 6, 1)
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                             % (1,6))
+
         for value in result:
             value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
@@ -3261,7 +3292,7 @@ def upload_identity_card_back():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/upload/upload_identity_card_front', methods=['POST'])
+@app.route('/api/upload/upload_identity_card_back', methods=['POST'])
 def upload_identity_card_front():
     """
     上传身份证正面
@@ -3686,55 +3717,10 @@ def get_order_list():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/specialist/get_historical_orders')
-def get_historical_orders():
-    """
-    获取历史咨询
-    :return:
-    """
-    token = request.values.get('token')
-    db = Database()
-    user = db.get({'token': token}, 'users')
-    if user:
-        orders = db.get({'userID': user['userID']}, 'orders_info', 0)
-        for order in orders:
-            order.update(
-                {'user_user_group': get_group(order['user_user_group']), 'user_level': get_level(order['user_exp']),
-                 'specialist_user_group': get_group(order['specialist_user_group']),
-                 'specialist_level': get_level(order['specialist_exp'])})
-        return jsonify({'code': 1, 'msg': 'success', 'data': orders})
-    return jsonify({'code': 0, 'msg': 'unexpected user'})
-
-
 @app.route('/api/specialist/confirm_order')
 def confirm_order():
     """
     确认付费咨询预约
-    :return:
-    """
-    token = request.form['token']
-    db = Database()
-    user = db.get({'token': token}, 'users')
-    if user:
-        order_id = request.form['order_id']
-        answer = request.form['answer']
-        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1, 'answer': answer}, 'orders')
-        flag = change_account_balance(float(order['price']), token)
-        flag1 = db.insert(
-            {'from': user['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 6},
-            'pay_log')
-        if order and flag == 1 and flag1:
-            set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被回答！', order['userID'], '付费咨询被回答')
-            return jsonify({'code': 1, 'msg': 'success'})
-        change_account_balance(-float(order['price']), token)
-        return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
-    return jsonify({'code': 0, 'msg': 'unexpected user'})
-
-
-@app.route('/api/specialist/get_order')
-def get_order():
-    """
-    获取咨询信息
     :return:
     """
     token = request.values.get('token')
@@ -3742,13 +3728,11 @@ def get_order():
     user = db.get({'token': token}, 'users')
     if user:
         order_id = request.values.get('order_id')
-        order = db.get({'orderID': order_id}, 'orders_info')
-        if order and (order['userID'] == user['userID'] or order['target'] == user['userID']):
-            order.update(
-                {'user_user_group': get_group(order['user_user_group']), 'user_level': get_level(order['user_exp']),
-                 'specialist_user_group': get_group(order['specialist_user_group']),
-                 'specialist_level': get_level(order['specialist_exp'])})
-            return jsonify({'code': 1, 'msg': 'success', 'data': order})
+        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1}, 'orders')
+        if order:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/specialist/refuse_order')
@@ -3778,7 +3762,7 @@ def refuse_order():
 @app.route('/api/specialist/get_click_info')
 def get_click_info():
     """
-    获取点击量信息
+    获取点击量图表（还没想好怎么写）
     :return:
     """
     token = request.values.get('token')
@@ -3821,19 +3805,13 @@ def add_order():
     user = db.get({'token': token}, 'users')
     if user:
         target = request.form['target']
-        price = request.form['price']
+        start_time = request.form['start_time']
+        end_time = request.form['end_time']
         content = request.form['content']
-        flag = db.insert({'userID': user['userID'], 'target': target, 'price': price,
+        flag = db.insert({'userID': user['userID'], 'target': target, 'start_time': start_time, 'end_time': end_time,
                           'content': content}, 'orders')
-        flag1 = change_account_balance(-float(price), token)
-        flag2 = db.insert(
-            {'from': user['userID'], 'amount': -float(price), 'receive': target, 'type': 2},
-            'pay_log')
-        if flag and flag1 == 1 and flag2:
-            set_sys_message(user['userID'], 3, '您有一份来自' + user['nickname'] + '咨询待回答！', target, '新付费咨询')
+        if flag:
             return jsonify({'code': 1, 'msg': 'success'})
-        if flag1 == -1:
-            return jsonify({'code': -2, 'msg': 'you do not have enough money'})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -5152,6 +5130,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000, debug=False)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
