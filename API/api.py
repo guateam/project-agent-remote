@@ -3477,7 +3477,7 @@ def before_vague_search_api():
     #  根据热搜项和输入内容的相似度进行排序，若相似度都小于等于0，则按照搜索热度排序
     # rank = select_by_similarity(input_word, word_bank)
 
-    return jsonify({"code": 1, "msg": "success", "data": rank})
+    return jsonify({"code": 1, "msg": "success", "data": word_bank})
 
 
 @app.route('/api/algorithm/search')
@@ -3488,6 +3488,8 @@ def vague_search_api():
     search_type = request.values.get('type')
     # 获取用户 token
     token = request.values.get('token')
+    # 获取page数
+    # page = request.values.get('token')
     # 以下内容为根据当前搜索内容更新搜索表里面相印搜索项的热度
 
     # 获取该输入内容是否存在与热搜项
