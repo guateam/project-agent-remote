@@ -2753,7 +2753,7 @@ def classify_all_tag():
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
 
-def flow_loading(data, each, page):
+def flow_loading(data, each, page, mode=0):
     """
     流加载
 
@@ -2766,7 +2766,10 @@ def flow_loading(data, each, page):
     page = int(page)
     # 最多流加载几次
     max_page = int(len(data) / each) + 1
-    # 超过最高加载次数的从第一次开始循环加载
+    # mode = 0时 超过最高加载次数的从第一次开始循环加载
+    if(mode != 0):
+        return []
+
     page = max_page if (page % max_page) == 0 else page % max_page
 
     begin_index = each * (page - 1)
@@ -4080,6 +4083,7 @@ def get_board_recommend():
             choosen_type.append(like_rate[i]['id'])
 
         demand = db.get({'state': 0}, 'demands_info', 0)
+
         """
             对接处
         """
@@ -4098,7 +4102,7 @@ def get_board_recommend():
                     'level': get_level(value['exp']),
                     'allowed_user_group': value['allowedUserGroup'].split(',')
                 })
-                if str(user['usergroup']) in value['allowedUserGroup'].split(','):
+                if (str(user['usergroup']) in value['allowedUserGroup'].split(',') ) and (value not in result):
                     result.append(value)
 
         result = flow_loading(result,each,page)
