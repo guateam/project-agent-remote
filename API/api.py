@@ -3877,8 +3877,8 @@ def add_demand():
     """
     token = request.form['token']
     db = Database()
-    user = db.get({'token': token, 'usergroup': 3}, 'users')
-    if user:
+    user = db.get({'token': token}, 'users')
+    if user and (user['usergroup'] == 3 or user['usergroup'] == 0):
         content = request.form['content']
         allowed_user = request.form['allowed_user']
         price = request.form['price']
@@ -3906,6 +3906,9 @@ def get_my_demands():
     user = db.get({'token': token}, 'users')
     if user:
         demands = db.get({'userID': user['userID']}, 'demands_info', 0)
+        for value in demands:
+            value.update(
+                {'tags': get_tags(value['tags']), 'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': demands})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -3962,6 +3965,27 @@ def refuse_signed_user():
         flag = db.update({'userID': user_id, 'target': target}, {'state': -1}, 'sign_demand')
         demand = db.get({'demandID': target}, 'demands')
         set_sys_message(user['userID'], 1, '您之前报名的 ' + demand['title'] + ' 申请未通过！', user_id, '报名信息')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to refuse'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/enterprise/un_refuse_signed_user')
+def un_refuse_signed_user():
+    """
+    撤销拒绝报名的用户
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        user_id = request.values.get('user_id')
+        target = request.values.get('target')
+        flag = db.update({'userID': user_id, 'target': target}, {'state': 0}, 'sign_demand')
+        demand = db.get({'demandID': target}, 'demands')
+        set_sys_message(user['userID'], 1, '您之前报名的 ' + demand['title'] + ' 未通过申请被撤回！', user_id, '报名信息')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to refuse'})
@@ -4048,6 +4072,9 @@ def sign_to_demand():
         demand_id = request.values.get('demand_id')
         demand = db.get({'demandID': demand_id}, 'demands')
         if str(user['usergroup']) in demand['allowedUserGroup'].split(','):
+            sign = db.get({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
+            if sign:
+                return jsonify({'code': 2, 'msg': 'you are already signed'})
             flag = db.insert({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
