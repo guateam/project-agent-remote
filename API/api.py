@@ -3257,7 +3257,7 @@ def upload_identity_card_back():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/upload/upload_identity_card_back', methods=['POST'])
+@app.route('/api/upload/upload_identity_card_front', methods=['POST'])
 def upload_identity_card_front():
     """
     上传身份证正面
