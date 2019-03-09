@@ -8,7 +8,7 @@ import datetime
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
 from API.OCR import ocr
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -26,8 +26,8 @@ USER_GROUP = ['系统管理员', '从业者', '专家', '企业', '封禁', '待
 LEVEL_EXP = [0, 100, 1000, 10000, 100000, 1000000]
 ARTICLE_ALLOWED_GROUP = [0, 2, 3]
 
-# CF_PATH = "/etc/project-agent/CF/"
-CF_PATH = "../CF/"
+CF_PATH = "/etc/project-agent/CF/"
+# CF_PATH = "../CF/"
 
 RATE_DIR = "rate_rect/"
 SIMILAR_DIR = "similar_rect/"
@@ -43,6 +43,13 @@ ARTICLE_SIMILAR_NAME = "article_similar_rect.txt"
 QUESTION_RATE_NAME = "question_rate_rect.txt"
 QUESTION_ID_NAME = "question_id_list.txt"
 QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
+
+
+@app.before_request
+def before_request():
+    if request.url.startswith('http://'):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
 
 
 @app.route("/")
@@ -2813,11 +2820,12 @@ def get_history_search():
     """
     token = request.values.get("token")
     db = Database()
-    user = db.get({'token':token}, 'users')
+    user = db.get({'token': token}, 'users')
     if not user:
         return jsonify({'code': 0, 'msg': 'user is not found'})
 
-    data = db.sql("select * from history_search where userID='%s' group by content order by time desc limit 10" % user['userID'])
+    data = db.sql(
+        "select * from history_search where userID='%s' group by content order by time desc limit 10" % user['userID'])
 
     for it in data:
         it.update({
@@ -3217,24 +3225,19 @@ def allowed_pic(filename):
     return '.' in filename and filename.rsplit('.', 1)[1] in ALLOWED_PIC
 
 
-@app.route('/api/upload/upload_identity_card', methods=['POST'])
-def upload_identity_card():
+@app.route('/api/upload/upload_identity_card_back', methods=['POST'])
+def upload_identity_card_back():
     """
-    上传身份证
+    上传身份证反面
     :return:code(0=未知用户，-1=文件格式不正确-2=无法自动识别，1=成功）
     """
-    front = request.files['front']
     back = request.files['back']
     token = request.form['token']
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-        if front and back and allowed_pic(front.filename) and allowed_pic(back.filename):
+        if back and allowed_pic(back.filename):
             basepath = os.path.dirname(__file__)  # 当前文件所在路径
-            # 正面的图片
-            front_filename = str(user['userID']) + '_front.' + front.filename.rsplit('.', 1)[1]
-            upload_path = os.path.join(basepath, 'static/identity_card', front_filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
-            front.save(upload_path)
             # 反面的图片
             back_filename = str(user['userID']) + '_back.' + back.filename.rsplit('.', 1)[1]
             upload_path_reverse = os.path.join(basepath, 'static/identity_card',
@@ -3244,11 +3247,38 @@ def upload_identity_card():
             # 调用ocr进行反面识别文字信息(反面是有个人信息的那一面)
             info_reverse = ocr(upload_path_reverse)
 
-            flag = db.update({'userID': user['userID']}, {'front_pic': '/static/identity_card/' + front_filename,
-                                                          'back_pic': '/static/identity_card/' + back_filename},
+            flag = db.update({'userID': user['userID']}, {
+                'back_pic': '/static/identity_card/' + back_filename},
                              'users')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success', 'data': info_reverse})
+            return jsonify({'code': -2, 'msg': 'unable to identify'})
+        return jsonify({'code': -1, 'msg': 'unexpected file'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/upload/upload_identity_card_back', methods=['POST'])
+def upload_identity_card_front():
+    """
+    上传身份证正面
+    :return:code(0=未知用户，-1=文件格式不正确-2=无法自动识别，1=成功）
+    """
+    front = request.files['front']
+    token = request.form['token']
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        if front and allowed_pic(front.filename):
+            basepath = os.path.dirname(__file__)  # 当前文件所在路径
+            # 正面的图片
+            front_filename = str(user['userID']) + '_front.' + front.filename.rsplit('.', 1)[1]
+            upload_path = os.path.join(basepath, 'static/identity_card', front_filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
+            front.save(upload_path)
+
+            flag = db.update({'userID': user['userID']}, {'front_pic': '/static/identity_card/' + front_filename, },
+                             'users')
+            if flag:
+                return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to identify'})
         return jsonify({'code': -1, 'msg': 'unexpected file'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
@@ -3465,13 +3495,15 @@ def vague_search_api():
 
     user = db.sql("select userID from users where token='%s'" % token)
     if user:
-        history = db.sql("select * from history_search where userID='%s' and content='%s' order by time desc" % (user[0]['userID'],input_word) )
+        history = db.sql("select * from history_search where userID='%s' and content='%s' order by time desc" % (
+            user[0]['userID'], input_word))
         if history:
             now_time = time.localtime(time.time())
-            now_time = time.strftime("%Y-%m-%d %H:%M:%S",now_time)
-            db.sql("update history_search set time='%s' where userID='%s' and content='%s'" %(now_time,user[0]['userID'],input_word))
+            now_time = time.strftime("%Y-%m-%d %H:%M:%S", now_time)
+            db.sql("update history_search set time='%s' where userID='%s' and content='%s'" % (
+                now_time, user[0]['userID'], input_word))
         else:
-            db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'],input_word))
+            db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'], input_word))
 
     word = db.get({'content': input_word}, 'search_word')
     # 若存在，则搜索次数增加一次
@@ -3488,7 +3520,7 @@ def vague_search_api():
             db.update({'content': result[0]['content']}, {'time': result[0]['time'] + 1}, 'search_word')
         # 否则认为该输入项为一个新的搜索项，加入搜索表中
         else:
-            db.insert({'content': input_word},'search_word')
+            db.insert({'content': input_word}, 'search_word')
 
     # 以下为根据搜索项模糊搜索对应文章或问题
     data = []
@@ -3500,7 +3532,8 @@ def vague_search_api():
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['title'] + ',' + each['description'])
-            each.update({'tags': get_tags(each['tags']),'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
+            each.update(
+                {'tags': get_tags(each['tags']), 'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
             output.append(each)
     elif search_type == 'article':
         # 找到包含输入词语的文章
