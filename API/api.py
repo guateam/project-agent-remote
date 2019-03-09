@@ -162,7 +162,7 @@ def register():
     email = request.form['email']
     password = request.form['password']
     openid = ""
-    
+
     # 检查是否存在来自微信的openid参数传入
     keys = request.form.keys()
     if 'openid' in keys:
@@ -3543,7 +3543,7 @@ def vague_search_api():
     # 获取用户 token
     token = request.values.get('token')
     # 获取page数
-    page = request.values.get('token')
+    page = request.values.get('page')
     # 以下内容为根据当前搜索内容更新搜索表里面相印搜索项的热度
 
     # 获取该输入内容是否存在与热搜项
@@ -3628,7 +3628,7 @@ def vg_search(search_type,input_word,page):
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
     output.sort(key=lambda it: it['tfidf'], reverse=True)
 
-    output = output.flow_loading(output,each_page,page)
+    output = flow_loading(output,each_page,page)
     return output
 
 
