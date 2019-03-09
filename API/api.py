@@ -3489,7 +3489,7 @@ def vague_search_api():
     # 获取用户 token
     token = request.values.get('token')
     # 获取page数
-    # page = request.values.get('token')
+    page = request.values.get('token')
     # 以下内容为根据当前搜索内容更新搜索表里面相印搜索项的热度
 
     # 获取该输入内容是否存在与热搜项
@@ -3529,25 +3529,27 @@ def vague_search_api():
     output = []
     # 根据搜索类型不同进行区分处理
     if search_type == "question":
-        output = vg_search(0,input_word)
+        output = vg_search(0,input_word,page)
     elif search_type == "article":
-        output = vg_search(1,input_word)
+        output = vg_search(1,input_word,page)
     elif search_type == "user":
-        output = vg_search(2,input_word)
+        output = vg_search(2,input_word,page)
     else :
-        output.append(vg_search(0,input_word))
-        output.append(vg_search(1,input_word))
-        output.append(vg_search(2,input_word))
+        output.append(vg_search(0,input_word,page))
+        output.append(vg_search(1,input_word,page))
+        output.append(vg_search(2,input_word,page))
 
     return jsonify({'code': 1, 'msg': 'success', 'data': output})
 
 
-def vg_search(search_type,input_word):
+def vg_search(search_type,input_word,page):
     db = Database()
     output = []
+    each_page = 6
+
     if search_type == 0:
         # 找到包含输入词语的问题
-        data = db.like({'title': input_word}, 'questions')
+        data = db.sql("select * from questions where title like '%" + input_word +"%' order by edittime desc ")
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['title'] + ',' + each['description'])
@@ -3556,7 +3558,7 @@ def vg_search(search_type,input_word):
             output.append(each)
     elif search_type == 1:
         # 找到包含输入词语的文章
-        data = db.sql("select * from article where title like '%" + input_word +"%' or content like '%" +input_word +"%'")
+        data = db.sql("select * from article where title like '%" + input_word +"%' or content like '%" +input_word +"%'  order by edittime desc ")
         # 将文章内容作为文本，输入词语作为关键词计算每一篇文章的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['content'])
@@ -3571,6 +3573,7 @@ def vg_search(search_type,input_word):
 
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
     output.sort(key=lambda it: it['tfidf'], reverse=True)
+    output = output.flow_loading(output,each_page,page)
     return output
 
 
@@ -4014,6 +4017,9 @@ def get_board_recommend():
     :return:
     """
     token = request.values.get('token')
+    page = request.values.get('page')
+    each = 6
+
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
@@ -4094,6 +4100,9 @@ def get_board_recommend():
                 })
                 if str(user['usergroup']) in value['allowedUserGroup'].split(','):
                     result.append(value)
+
+        result = flow_loading(result,each,page)
+
         return jsonify({'code': 1, 'msg': 'success', 'data': result})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
