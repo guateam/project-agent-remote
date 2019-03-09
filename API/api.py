@@ -2804,12 +2804,10 @@ def classify_all_tag():
                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                              % (1,6))
 
-        for value in result:
+        for value in target:
             value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
-        data.append(result)
-
-    return jsonify({'code': 1, 'msg': 'success', 'data': data})
+    return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
 
 def flow_loading(data, each, page, mode=0):
