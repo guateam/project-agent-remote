@@ -1091,7 +1091,8 @@ def adopt_answer():
                     flag = db.get({'userID': answer['userID']}, 'users')
                     if flag:
                         flag1 = db.update({'userID': answer['userID']},
-                                          {'account_balance': float(flag['account_balance']) + float(question['price'])},
+                                          {'account_balance': float(flag['account_balance']) + float(
+                                              question['price'])},
                                           'users')
                         flag2 = db.update({'answerID': answer['answerID']}, {'answerType': 2}, 'answers')
                         if flag1 and flag2:
@@ -2767,7 +2768,7 @@ def flow_loading(data, each, page, mode=0):
     # 最多流加载几次
     max_page = int(len(data) / each) + 1
     # mode = 0时 超过最高加载次数的从第一次开始循环加载
-    if(mode != 0):
+    if (mode != 0):
         return []
 
     page = max_page if (page % max_page) == 0 else page % max_page
@@ -3510,7 +3511,7 @@ def vague_search_api():
         else:
             db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'], input_word))
 
-    word = db.get({'content': input_word}, 'search_word',0)
+    word = db.get({'content': input_word}, 'search_word', 0)
     # 若存在，则搜索次数增加一次
     if word:
         db.update({'content': input_word}, {'time': word[0]['time'] + 1}, 'search_word')
@@ -3532,27 +3533,27 @@ def vague_search_api():
     output = []
     # 根据搜索类型不同进行区分处理
     if search_type == "question":
-        output = vg_search(0,input_word,page)
+        output = vg_search(0, input_word, page)
     elif search_type == "article":
-        output = vg_search(1,input_word,page)
+        output = vg_search(1, input_word, page)
     elif search_type == "user":
-        output = vg_search(2,input_word,page)
-    else :
-        output.append(vg_search(0,input_word,page))
-        output.append(vg_search(1,input_word,page))
-        output.append(vg_search(2,input_word,page))
+        output = vg_search(2, input_word, page)
+    else:
+        output.append(vg_search(0, input_word, page))
+        output.append(vg_search(1, input_word, page))
+        output.append(vg_search(2, input_word, page))
 
     return jsonify({'code': 1, 'msg': 'success', 'data': output})
 
 
-def vg_search(search_type,input_word,page):
+def vg_search(search_type, input_word, page):
     db = Database()
     output = []
     each_page = 6
 
     if search_type == 0:
         # 找到包含输入词语的问题
-        data = db.sql("select * from questions where title like '%" + input_word +"%' order by edittime desc ")
+        data = db.sql("select * from questions where title like '%" + input_word + "%' order by edittime desc ")
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['title'] + ',' + each['description'])
@@ -3561,7 +3562,8 @@ def vg_search(search_type,input_word,page):
             output.append(each)
     elif search_type == 1:
         # 找到包含输入词语的文章
-        data = db.sql("select * from article where title like '%" + input_word +"%' or content like '%" +input_word +"%'  order by edittime desc ")
+        data = db.sql(
+            "select * from article where title like '%" + input_word + "%' or content like '%" + input_word + "%'  order by edittime desc ")
         # 将文章内容作为文本，输入词语作为关键词计算每一篇文章的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['content'])
@@ -3576,7 +3578,7 @@ def vg_search(search_type,input_word,page):
 
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
     output.sort(key=lambda it: it['tfidf'], reverse=True)
-    output = output.flow_loading(output,each_page,page)
+    output = output.flow_loading(output, each_page, page)
     return output
 
 
@@ -3761,12 +3763,12 @@ def refuse_order():
     if user:
         order_id = request.values.get('order_id')
         order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': -1}, 'orders')
-        user1=db.get({'userID':order['userID']},'users')
+        user1 = db.get({'userID': order['userID']}, 'users')
         flag = change_account_balance(float(order['price']), user1['token'])
         flag1 = db.insert(
             {'from': user1['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 7},
             'pay_log')
-        if order and flag==1 and flag1:
+        if order and flag == 1 and flag1:
             set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'], '付费咨询被拒绝')
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
@@ -4161,10 +4163,10 @@ def get_board_recommend():
                     'level': get_level(value['exp']),
                     'allowed_user_group': value['allowedUserGroup'].split(',')
                 })
-                if (str(user['usergroup']) in value['allowedUserGroup'].split(',') ) and (value not in result):
+                if (str(user['usergroup']) in value['allowedUserGroup'].split(',')) and (value not in result):
                     result.append(value)
 
-        result = flow_loading(result,each,page)
+        result = flow_loading(result, each, page)
 
         return jsonify({'code': 1, 'msg': 'success', 'data': result})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
