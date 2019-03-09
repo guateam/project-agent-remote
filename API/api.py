@@ -163,24 +163,32 @@ def register():
     email = request.form['email']
     password = request.form['password']
     openid = ""
-
+    nickname = '用户'
+    gender = ""
+    head = ""
     # 检查是否存在来自微信的openid参数传入
     keys = request.form.keys()
     if 'openid' in keys:
         openid = request.form['openid']
+    if 'nickname' in keys:
+        nickname = request.form['nickname']
+    if 'gender' in keys:
+        gender = request.form['gender']
+    if 'head' in keys:
+        head = request.form['head']
 
     db = Database()
     email_check = db.get({'email': email}, 'users')
     if not email_check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
-        nickname = ''
+
         for value in nick_name_list:
             nickname += value
         # 之后微信实装了在这里补上openid的注册
         flag = db.insert({
             'email': email,
             'password': generate_password(password),
-            'nickname': '用户 ' + nickname
+            'nickname': nickname
         }, 'users')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
@@ -1357,8 +1365,8 @@ def add_question_comment():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/questions/get_comment_by_user_id')
-def get_comment_by_user_id():
+@app.route('/api/questions/get_commment_by_userid')
+def get_comment_by_userid():
     user_id = request.values.get("user_id")
     db = Database()
     comments = db.get({'userID': user_id}, 'questioncomments')
@@ -1376,9 +1384,6 @@ def get_question_comment():
     question = db.get({'questionID': question_id}, 'questions')
     if question:
         data = db.get({'questionID': question_id}, 'question_comments_info', 0)
-        for value in data:
-            value.update({'usergroup': get_group(value['usergroup']), 'level': get_level(value['exp']),
-                          'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
@@ -1622,9 +1627,7 @@ def get_answer_comment_list():
                     'user_headportrait': user['headportrait'],
                     'content': value['content'],
                     'create_time': get_formative_datetime(value['createtime']),
-                    'agree': value['agree'],
-                    'usergroup': get_group(value['usergroup']),
-                    'level': get_level(value['exp'])
+                    'agree': value['agree']
                 })
         sorted(data, key=lambda a: a['agree'], reverse=True)
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
@@ -2802,12 +2805,10 @@ def classify_all_tag():
                                                                                                              "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
 
-        for value in result:
+        for value in target:
             value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
-        data.append(result)
-
-    return jsonify({'code': 1, 'msg': 'success', 'data': data})
+    return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
 
 def flow_loading(data, each, page, mode=0):
