@@ -3475,7 +3475,7 @@ def before_vague_search_api():
     # 获取模糊匹配的热搜项
     word_bank = db.vague({"content": input_word}, "search_word")
     #  根据热搜项和输入内容的相似度进行排序，若相似度都小于等于0，则按照搜索热度排序
-    rank = select_by_similarity(input_word, word_bank)
+    # rank = select_by_similarity(input_word, word_bank)
 
     return jsonify({"code": 1, "msg": "success", "data": rank})
 
@@ -3505,10 +3505,10 @@ def vague_search_api():
         else:
             db.sql("insert into history_search (userID,content) values ('%s','%s') " % (user[0]['userID'], input_word))
 
-    word = db.get({'content': input_word}, 'search_word')
+    word = db.get({'content': input_word}, 'search_word',0)
     # 若存在，则搜索次数增加一次
     if word:
-        db.update({'content': input_word}, {'time': word['time'] + 1}, 'search_word')
+        db.update({'content': input_word}, {'time': word[0]['time'] + 1}, 'search_word')
     #  否则根据相似度进行处理
     else:
         # 获取所有热搜项
@@ -3526,7 +3526,24 @@ def vague_search_api():
     data = []
     output = []
     # 根据搜索类型不同进行区分处理
-    if search_type == 'question':
+    if search_type == "question":
+        output = vg_search(0,input_word)
+    elif search_type == "article":
+        output = vg_search(1,input_word)
+    elif search_type == "user":
+        output = vg_search(2,input_word)
+    else :
+        output.append(vg_search(0,input_word))
+        output.append(vg_search(1,input_word))
+        output.append(vg_search(2,input_word))
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': output})
+
+
+def vg_search(search_type,input_word):
+    db = Database()
+    output = []
+    if search_type == 0:
         # 找到包含输入词语的问题
         data = db.like({'title': input_word}, 'questions')
         # 将问题题目和描述作为文本，输入词语作为关键词计算每一个问题的tfidf值
@@ -3535,16 +3552,16 @@ def vague_search_api():
             each.update(
                 {'tags': get_tags(each['tags']), 'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
             output.append(each)
-    elif search_type == 'article':
+    elif search_type == 1:
         # 找到包含输入词语的文章
-        data = db.like({'title': input_word, 'content': input_word}, 'article')
+        data = db.sql("select * from article where title like '%" + input_word +"%' or content like '%" +input_word +"%'")
         # 将文章内容作为文本，输入词语作为关键词计算每一篇文章的tfidf值
         for each in data:
             tfidf = tf_idf(input_word, each['content'])
             each.update(
                 {'tags': get_tags(each['tags']), 'tfidf': tfidf, 'edittime': each['edittime'].strftime('%Y/%m/%d')})
             output.append(each)
-    elif search_type == 'user':
+    elif search_type == 2:
         data = db.like({'nickname': input_word}, 'users')
         for each in data:
             each.update({'tfidf': 0})
@@ -3552,8 +3569,7 @@ def vague_search_api():
 
     # 按照tfidf值降序排列，值越高，文章或问题和输入词语关联越大
     output.sort(key=lambda it: it['tfidf'], reverse=True)
-
-    return jsonify({'code': 1, 'msg': 'success', 'data': output})
+    return output
 
 
 def tf_idf(word, content, type='question'):
@@ -4202,13 +4218,19 @@ def get_demands_by_tag():
     """
     tag_id = request.values.get('tag_id')
     db = Database()
-    articles = db.get({'state': 0}, 'demands_info', 0)
+    demands = db.get({'state': 0}, 'demands_info', 0)
     data = []
-    for value in articles:
-        tags = value['tags'].split(',')
-        if tag_id in tags:
-            value.update({'tags': get_tags(value['tags'])})
-            data.append(value)
+    for value in demands:
+        tags = get_tags(value['tags'])
+        for tag in tags:
+            if tag['id'] == tag_id:
+                value.update({
+                    'tags': get_tags(value['tags']),
+                    'usergroup': get_group(value['usergroup']),
+                    'level': get_level(value['exp']),
+                })
+                data.append(value)
+                break
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
 
 
