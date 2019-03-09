@@ -1322,8 +1322,8 @@ def add_question_comment():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/questions/get_commment_by_userid')
-def get_comment_by_userid():
+@app.route('/api/questions/get_comment_by_user_id')
+def get_comment_by_user_id():
     user_id = request.values.get("user_id")
     db = Database()
     comments = db.get({'userID': user_id}, 'questioncomments')
@@ -1341,6 +1341,9 @@ def get_question_comment():
     question = db.get({'questionID': question_id}, 'questions')
     if question:
         data = db.get({'questionID': question_id}, 'question_comments_info', 0)
+        for value in data:
+            value.update({'usergroup': get_group(value['usergroup']), 'level': get_level(value['exp']),
+                          'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
@@ -1584,7 +1587,9 @@ def get_answer_comment_list():
                     'user_headportrait': user['headportrait'],
                     'content': value['content'],
                     'create_time': get_formative_datetime(value['createtime']),
-                    'agree': value['agree']
+                    'agree': value['agree'],
+                    'usergroup': get_group(value['usergroup']),
+                    'level': get_level(value['exp'])
                 })
         sorted(data, key=lambda a: a['agree'], reverse=True)
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
