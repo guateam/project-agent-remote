@@ -39,7 +39,7 @@ USER_RATE_NAME = "user_rate_rect.txt"
 USER_ID_NAME = "user_id_list.txt"
 USER_SIMILAR_NAME = "user_similar_rect.txt"
 
-ARTICLE_RATE_NAME = "aritcle_rate_rect.txt"
+ARTICLE_RATE_NAME = "article_rate_rect.txt"
 ARTICLE_ID_NAME = "article_id_list.txt"
 ARTICLE_SIMILAR_NAME = "article_similar_rect.txt"
 
@@ -4547,14 +4547,13 @@ def get_recommend_article():
     :return:code:-1=评分矩阵未建立  0=用户不存在  1=成功
     """
     token = request.values.get('token')
-    page = request.values.get('page')
+    page = int(request.values.get('page'))
     each_page = 6
 
     db = Database()
     user = db.get({'token': token}, 'users')
 
-    rate_dir = '/etc/project-agent/CF/rate_rect/article_rate_rect.txt'
-    # rate_dir = '../CF/rate_rect/article_rate_rect.txt'
+    rate_dir = CF_PATH + RATE_DIR + ARTICLE_RATE_NAME
 
     if not user:
         return jsonify({'code': 0, 'msg': 'user is not exist'})
@@ -4564,9 +4563,12 @@ def get_recommend_article():
                                            ' build it by function build_article_rate_rect'})
     # 查找该用户最近浏览的最多10篇文章
     action = db.sql("select distinct targetID from useraction where userID='%s' and targettype >=21 and targettype<=25 "
-                    "order by actiontime DESC limit 2" % user['userID'])
+                    "order by actiontime DESC limit 1" % user['userID'])
     # 推荐结果容器
     recommend_article = []
+    # 流加载结果容器
+    result = []
+
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
         ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 6)
@@ -4575,11 +4577,13 @@ def get_recommend_article():
             article.update({'tags': get_tags(article['tags'])})
             if article not in recommend_article:
                 recommend_article.append(article)
-    # 若action为空，则随机推荐
-    if not action:
-        recommend_article = db.sql("select * from article order by edittime DESC limit 10")
-
-    result = flow_loading(recommend_article, each_page, page)
+    # 若推荐内容为空，则随机推荐
+    if not recommend_article:
+        begin = (page - 1) * each_page + 1
+        end = page * each_page
+        result = db.sql("select * from article order by edittime DESC limit %d,%d" % (begin, end))
+    else:
+        result = flow_loading(recommend_article, each_page, page)
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
