@@ -1057,6 +1057,59 @@ def get_history():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/account/get_user_answers_by_id')
+def get_user_answers_by_id():
+    """
+    获取用户的回答
+    :return:
+    """
+    user_id = request.values.get('user_id')
+    db = Database()
+    user = db.get({'userID': user_id}, 'users')
+    if user:
+        answers = db.get({'userID': user['userID']}, 'answersinfo', 0)
+        for value in answers:
+            value.update({'tags': get_tags(value['tags'])})
+        return jsonify({'code': 1, 'msg': 'success', 'data': answers})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/account/get_user_questions_by_id')
+def get_user_questions_by_id():
+    """
+    获取用户的问题
+    :return:
+    """
+    user_id = request.values.get('user_id')
+    db = Database()
+    user = db.get({'userID': user_id}, 'users')
+    if user:
+        questions = db.get({'userID': user['userID']}, 'questions', 0)
+        for value in questions:
+            value.update({'tags': get_tags(value['tags']),
+                          'follow': db.count({'targetID': value['questionID'], 'targettype': 12}, 'useraction'),
+                          'comments': db.count({'questionID': value['questionID']}, 'questioncomments')})
+        return jsonify({'code': 1, 'msg': 'success', 'data': questions})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/account/get_user_articles_by_id')
+def get_user_articles_by_id():
+    """
+    获取用户的文章
+    :return:
+    """
+    user_id = request.values.get('user_id')
+    db = Database()
+    user = db.get({'userID': user_id}, 'users')
+    if user:
+        articles = db.get({'userID': user['userID']}, 'articleinfo', 0)
+        for value in articles:
+            value.update({'tags': get_tags(value['tags'])})
+        return jsonify({'code': 1, 'msg': 'success', 'data': articles})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 """
     问题接口
 """
