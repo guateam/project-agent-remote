@@ -1092,7 +1092,7 @@ def add_priced_question():
     token = request.form['token']
     price = request.form['price']
     db = Database()
-    res = change_account_balance(-int(price), token)
+    res = change_account_balance(-float(price), token)
     if res == 1:
         user = db.get({'token': token}, 'users')
         if user:
@@ -1105,7 +1105,7 @@ def add_priced_question():
                              'questions')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
-            change_account_balance(-int(price), token)
+            change_account_balance(-float(price), token)
             return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
     elif res == 0:
@@ -1135,7 +1135,8 @@ def adopt_answer():
                     flag = db.get({'userID': answer['userID']}, 'users')
                     if flag:
                         flag1 = db.update({'userID': answer['userID']},
-                                          {'account_balance': int(flag['account_balance']) + int(question['price'])},
+                                          {'account_balance': float(flag['account_balance']) + float(
+                                              question['price'])},
                                           'users')
                         flag2 = db.update({'answerID': answer['answerID']}, {'answerType': 2}, 'answers')
                         if flag1 and flag2:
@@ -1365,8 +1366,8 @@ def add_question_comment():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/questions/get_commment_by_userid')
-def get_comment_by_userid():
+@app.route('/api/questions/get_comment_by_user_id')
+def get_comment_by_user_id():
     user_id = request.values.get("user_id")
     db = Database()
     comments = db.get({'userID': user_id}, 'questioncomments')
@@ -1384,6 +1385,9 @@ def get_question_comment():
     question = db.get({'questionID': question_id}, 'questions')
     if question:
         data = db.get({'questionID': question_id}, 'question_comments_info', 0)
+        for value in data:
+            value.update({'usergroup': get_group(value['usergroup']), 'level': get_level(value['exp']),
+                          'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
@@ -1627,7 +1631,9 @@ def get_answer_comment_list():
                     'user_headportrait': user['headportrait'],
                     'content': value['content'],
                     'create_time': get_formative_datetime(value['createtime']),
-                    'agree': value['agree']
+                    'agree': value['agree'],
+                    'usergroup': get_group(value['usergroup']),
+                    'level': get_level(value['exp'])
                 })
         sorted(data, key=lambda a: a['agree'], reverse=True)
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
@@ -2581,19 +2587,19 @@ def pay_article():
             if article['free'] == 0:
                 pay = db.get({'from': user['userID'], 'receive': article['articleID'], 'type': 4}, 'pay_log')
                 if not pay:
-                    flag = change_account_balance(-int(article['price']), token)
+                    flag = change_account_balance(-float(article['price']), token)
                     if flag == 1:
                         flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
-                                          'amount': -int(article['price'])},
+                                          'amount': -float(article['price'])},
                                          'pay_log')
                         flag1 = db.insert({'from': article['userID'], 'receive': article['articleID'], 'type': 5,
-                                           'amount': int(article['price']) * 0.8}, 'pay_log')
+                                           'amount': float(article['price']) * 0.8}, 'pay_log')
                         author = db.get({'userID': article['userID']}, 'users')
                         if author:
-                            change_account_balance(int(article['price']) * 0.8, author['token'])
+                            change_account_balance(float(article['price']) * 0.8, author['token'])
                         if flag and flag1:
                             return jsonify({'code': 1, 'msg': 'success'})
-                        change_account_balance(int(article['price']), token)
+                        change_account_balance(float(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
                     elif flag == -1:
                         return jsonify({'code': -2, 'msg': 'not enough money'})
@@ -3318,7 +3324,7 @@ def upload_identity_card_back():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/upload/upload_identity_card_back', methods=['POST'])
+@app.route('/api/upload/upload_identity_card_front', methods=['POST'])
 def upload_identity_card_front():
     """
     上传身份证正面
@@ -3750,16 +3756,43 @@ def confirm_order():
     确认付费咨询预约
     :return:
     """
+    token = request.form['token']
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        order_id = request.form['order_id']
+        answer = request.form['answer']
+        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1, 'answer': answer}, 'orders')
+        flag = change_account_balance(float(order['price']), token)
+        flag1 = db.insert(
+            {'from': user['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 6},
+            'pay_log')
+        if order and flag == 1 and flag1:
+            set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被回答！', order['userID'], '付费咨询被回答')
+            return jsonify({'code': 1, 'msg': 'success'})
+        change_account_balance(-float(order['price']), token)
+        return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/specialist/get_order')
+def get_order():
+    """
+    获取咨询信息
+    :return:
+    """
     token = request.values.get('token')
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
         order_id = request.values.get('order_id')
-        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1}, 'orders')
-        if order:
-            return jsonify({'code': 1, 'msg': 'success'})
-        return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
-    return jsonify({'code': 0, 'msg': 'unexpected user'})
+        order = db.get({'orderID': order_id}, 'orders_info')
+        if order and (order['userID'] == user['userID'] or order['target'] == user['userID']):
+            order.update(
+                {'user_user_group': get_group(order['user_user_group']), 'user_level': get_level(order['user_exp']),
+                 'specialist_user_group': get_group(order['specialist_user_group']),
+                 'specialist_level': get_level(order['specialist_exp'])})
+            return jsonify({'code': 1, 'msg': 'success', 'data': order})
 
 
 @app.route('/api/specialist/refuse_order')
@@ -3775,7 +3808,13 @@ def refuse_order():
         order_id = request.values.get('order_id')
         order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': -1}, 'orders')
         if order:
-            return jsonify({'code': 1, 'msg': 'success'})
+            user1 = db.get({'userID': order['userID']}, 'users')
+            flag = change_account_balance(float(order['price']), user1['token'])
+            flag1 = db.insert(
+                {'from': user1['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 7},
+                'pay_log')
+            if order and flag == 1 and flag1:
+                set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'], '付费咨询被拒绝')
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -3826,14 +3865,19 @@ def add_order():
     user = db.get({'token': token}, 'users')
     if user:
         target = request.form['target']
-        start_time = request.form['start_time']
-        end_time = request.form['end_time']
+        price = request.form['price']
         content = request.form['content']
-        flag = db.insert({'userID': user['userID'], 'target': target, 'start_time': start_time, 'end_time': end_time,
+        flag = db.insert({'userID': user['userID'], 'target': target, 'price': price,
                           'content': content}, 'orders')
-        if flag:
+        flag1 = change_account_balance(-float(price), token)
+        flag2 = db.insert(
+            {'from': user['userID'], 'amount': -float(price), 'receive': target, 'type': 2},
+            'pay_log')
+        if flag and flag1 == 1 and flag2:
+            set_sys_message(user['userID'], 3, '您有一份来自' + user['nickname'] + '咨询待回答！', target, '新付费咨询')
             return jsonify({'code': 1, 'msg': 'success'})
-        return jsonify({'code': -1, 'msg': 'unable to insert'})
+        if flag1 == -1:
+            return jsonify({'code': -2, 'msg': 'you do not have enough money'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
@@ -3896,8 +3940,8 @@ def add_demand():
     """
     token = request.form['token']
     db = Database()
-    user = db.get({'token': token, 'usergroup': 3}, 'users')
-    if user:
+    user = db.get({'token': token}, 'users')
+    if user and (user['usergroup'] == 3 or user['usergroup'] == 0):
         content = request.form['content']
         allowed_user = request.form['allowed_user']
         price = request.form['price']
@@ -3925,6 +3969,9 @@ def get_my_demands():
     user = db.get({'token': token}, 'users')
     if user:
         demands = db.get({'userID': user['userID']}, 'demands_info', 0)
+        for value in demands:
+            value.update(
+                {'tags': get_tags(value['tags']), 'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': demands})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -3981,6 +4028,27 @@ def refuse_signed_user():
         flag = db.update({'userID': user_id, 'target': target}, {'state': -1}, 'sign_demand')
         demand = db.get({'demandID': target}, 'demands')
         set_sys_message(user['userID'], 1, '您之前报名的 ' + demand['title'] + ' 申请未通过！', user_id, '报名信息')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to refuse'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/enterprise/un_refuse_signed_user')
+def un_refuse_signed_user():
+    """
+    撤销拒绝报名的用户
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        user_id = request.values.get('user_id')
+        target = request.values.get('target')
+        flag = db.update({'userID': user_id, 'target': target}, {'state': 0}, 'sign_demand')
+        demand = db.get({'demandID': target}, 'demands')
+        set_sys_message(user['userID'], 1, '您之前报名的 ' + demand['title'] + ' 未通过申请被撤回！', user_id, '报名信息')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to refuse'})
@@ -4066,6 +4134,9 @@ def sign_to_demand():
     if user:
         demand_id = request.values.get('demand_id')
         demand = db.get({'demandID': demand_id}, 'demands')
+        sign = db.get({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
+        if sign:
+            return jsonify({'code': 2, 'msg': 'you are already signed'})
         if str(user['usergroup']) in demand['allowedUserGroup'].split(','):
             flag = db.insert({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
             if flag:
