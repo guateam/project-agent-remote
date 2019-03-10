@@ -4248,7 +4248,7 @@ def get_board_recommend():
 
         questionID = []
         # 获取用户最可能感兴趣的问题id列表
-        similar_user = user_cf_api(USER_SIMILAR_NAME, USER_ID_NAME, userID, num)
+        similar_user = user_cf_api(USER_SIMILAR_NAME, USER_ID_NAME, userID, 3)
         for key in similar_user.keys():
             rates = similar_user[key]
             count = 0
@@ -4297,11 +4297,11 @@ def get_board_recommend():
             tags = db.sql("select id from tags")
             tag_id = []
             for tag in tags:
-                tag_id.append(tag['id'])
+                tag_id.append(str(tag['id']))
             while len(choosen_type) < 3:
                 idx = random.randint(0, len(tag_id) - 1)
                 if tags[idx]['id'] not in choosen_type:
-                    choosen_type.append(tags[idx]['id'])
+                    choosen_type.append(str(tags[idx]['id']))
 
         demand = db.get({'state': 0}, 'demands_info', 0)
         result = []
