@@ -4240,9 +4240,6 @@ def get_board_recommend():
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-        """
-            没对接cf算法，到时候对接一下cf算法
-        """
         userID = user['userID']
         # 推荐的相似用户个数
         num = 3
@@ -4251,7 +4248,7 @@ def get_board_recommend():
 
         questionID = []
         # 获取用户最可能感兴趣的问题id列表
-        similar_user = user_cf_api(USER_SIMILAR_NAME, USER_ID_NAME, userID, 3)
+        similar_user = user_cf_api(USER_SIMILAR_NAME, USER_ID_NAME, userID, num)
         for key in similar_user.keys():
             rates = similar_user[key]
             count = 0
@@ -4295,12 +4292,18 @@ def get_board_recommend():
             if i >= len(like_rate):
                 break
             choosen_type.append(like_rate[i]['id'])
+        # 没有获取到偏好的情况
+        if not choosen_type:
+            tags = db.sql("select id from tags")
+            tag_id = []
+            for tag in tags:
+                tag_id.append(tag['id'])
+            while len(choosen_type) < 3:
+                idx = random.randint(0, len(tag_id) - 1)
+                if tags[idx]['id'] not in choosen_type:
+                    choosen_type.append(tags[idx]['id'])
 
         demand = db.get({'state': 0}, 'demands_info', 0)
-
-        """
-            对接处
-        """
         result = []
         for value in demand:
             tags = value['tags']
