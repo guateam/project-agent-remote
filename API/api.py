@@ -2730,15 +2730,17 @@ def get_recommend():
     # 用户token
     token = request.values.get('token')
     # 加载的次数
-    pages = request.values.get('page')
+    pages = int(request.values.get('page'))
     # 每次加载量
     each_ = 6
-
+    # 推荐的id列表
+    recommend_question_ids = []
+    # 流加载结果容器
+    result = []
     # 获取用户信息
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-
         # 假装有广告,直接插入广告
         data = [{'title': '震惊！这样可以测出你的血脂', 'type': 2}]
         # 获取该用户最近的20条关于问题的行为
@@ -2746,16 +2748,24 @@ def get_recommend():
                                      "and targettype >=11 and targettype<=14 order by actiontime DESC limit 20" % user[
                                          'userID'])
         # 将最近一次行为的问题作为参考,进行item_cf推荐
-        target_question_id = the_question_action[0]['targetID']
-        # 判断评分矩阵是否存在
-        if not os.path.exists(CF_PATH + RATE_DIR + QUESTION_RATE_NAME):
-            return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
-                                               ' build it by function build_questoin_rate_rect'})
-        # 获得相似度降序排列的问题序列
-        recommend_question_ids = item_cf_api(QUESTION_SIMILAR_NAME, QUESTION_ID_NAME,
-                                             target_question_id, 100)
+        if the_question_action:
+            target_question_id = the_question_action[0]['targetID']
+            # 判断评分矩阵是否存在
+            if not os.path.exists(CF_PATH + RATE_DIR + QUESTION_RATE_NAME):
+                return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
+                                                   ' build it by function build_questoin_rate_rect'})
+            # 获得相似度降序排列的问题序列
+            recommend_question_ids = item_cf_api(QUESTION_SIMILAR_NAME, QUESTION_ID_NAME, target_question_id, 100)
 
-        result = flow_loading(recommend_question_ids, each_, pages)
+        # 若无推荐内容，则根据日期获取最新的问题id列表
+        if not recommend_question_ids:
+            begin = (pages - 1) * each_ + 1
+            end = pages * each_
+            qs_id = db.sql("select questionID from questions order by edittime desc limit %d,%d" % (begin, end))
+            for it in qs_id:
+                result.append(it['questionID'])
+        else:
+            result = flow_loading(recommend_question_ids, each_, pages)
 
         # 录入结果
         for id in result:
@@ -2821,11 +2831,11 @@ def classify_by_tag():
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
 
     # result = flow_loading(target, each, page)
@@ -2857,11 +2867,11 @@ def classify_all_tag():
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
 
         for value in target:
@@ -4602,7 +4612,10 @@ def get_recommend_article():
     token = request.values.get('token')
     page = int(request.values.get('page'))
     each_page = 6
-
+    # 推荐结果容器
+    recommend_article = []
+    # 流加载结果容器
+    result = []
     db = Database()
     user = db.get({'token': token}, 'users')
 
@@ -4614,13 +4627,12 @@ def get_recommend_article():
     if not os.path.exists(rate_dir):
         return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
                                            ' build it by function build_article_rate_rect'})
+
+
     # 查找该用户最近浏览的最多10篇文章
     action = db.sql("select distinct targetID from useraction where userID='%s' and targettype >=21 and targettype<=25 "
                     "order by actiontime DESC limit 1" % user['userID'])
-    # 推荐结果容器
-    recommend_article = []
-    # 流加载结果容器
-    result = []
+
 
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
@@ -4630,6 +4642,7 @@ def get_recommend_article():
             article.update({'tags': get_tags(article['tags'])})
             if article not in recommend_article:
                 recommend_article.append(article)
+
     # 若推荐内容为空，则随机推荐
     if not recommend_article:
         begin = (page - 1) * each_page + 1
