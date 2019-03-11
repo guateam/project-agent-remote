@@ -197,6 +197,27 @@ def register():
     return jsonify({'code': -1, 'msg': 'user has already exist'})  # 未知错误
 
 
+@app.route('/api/account/set_account_info', methods=['POST'])
+def set_account_info():
+    """
+    设置账户详情
+    :return:
+    """
+    token = request.form['token']
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        nickname = request.form['nickname']
+        description = request.form['description']
+        headportrait = request.form['headportrait']
+        flag = db.update({'token': token},
+                         {'nickname': nickname, 'description': description, 'headportrait': headportrait}, 'users')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to update'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 @app.route('/api/account/check_email')
 def check_email():
     """
@@ -2831,11 +2852,11 @@ def classify_by_tag():
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
 
     # result = flow_loading(target, each, page)
@@ -2867,11 +2888,11 @@ def classify_all_tag():
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
 
         for value in target:
@@ -3316,6 +3337,36 @@ def get_message():
             return jsonify({'code': -1, 'msg': 'fail'})
     else:
         return jsonify({'code': 0, 'msg': 'the user is not exist'})
+
+
+@app.route('/api/message/get_comment_and_reply')
+def get_comment_and_reply():
+    """
+    获取回复和评论
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        question = db.get({'userID': user['userID']}, 'questions', 0)
+        q_data = []
+        for value in question:
+            comment = db.get({'questionID': value['questionID']}, 'question_comments_info', 0)
+            q_data = q_data + comment
+        answer = db.get({'userID': user['userID']}, 'answer_comment_info', 0)
+        an_data = []
+        for value in answer:
+            comment = db.get({'answerID': value['answerID']}, 'answer_comments_info', 0)
+            an_data = an_data + comment
+        article = db.get({'userID': user['userID']}, 'article', 0)
+        ar_data = []
+        for value in article:
+            comment = db.get({'articleID': value['articleID']}, 'article_comment_info', 0)
+            ar_data = ar_data + comment
+        return jsonify(
+            {'code': 1, 'msg': 'success', 'data': {'question': q_data, 'answer': an_data, 'article': ar_data}})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 """
@@ -4631,11 +4682,9 @@ def get_recommend_article():
         return jsonify({'code': -1, 'msg': 'the rate rectangle is not exist,please'
                                            ' build it by function build_article_rate_rect'})
 
-
     # 查找该用户最近浏览的最多10篇文章
     action = db.sql("select distinct targetID from useraction where userID='%s' and targettype >=21 and targettype<=25 "
                     "order by actiontime DESC limit 1" % user['userID'])
-
 
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
