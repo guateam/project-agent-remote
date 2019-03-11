@@ -4700,11 +4700,10 @@ def get_recommend_article():
         begin = (page - 1) * each_page + 1
         end = page * each_page
         result = db.sql("select * from article order by edittime DESC limit %d,%d" % (begin, end))
+        for value in result:
+            value.update({'tags': get_tags(value['tags'])})
     else:
         result = flow_loading(recommend_article, each_page, page)
-
-    for value in result:
-        value.update({'tags': get_tags(value['tags'])})
 
     return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
