@@ -2887,12 +2887,12 @@ def classify_all_tag():
     for cate in category:
         tag = str(cate['id'])
         if type == 1:
-            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+            target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
         elif type == 2:
-            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+            target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
 
         for value in target:
@@ -4688,7 +4688,7 @@ def get_recommend_article():
 
     # 推荐的文章id,最多3条，相似度降序排列
     for each in action:
-        ids = item_cf_api("article_similar_rect.txt", "article_id_list.txt", each['targetID'], 6)
+        ids = item_cf_api(ARTICLE_SIMILAR_NAME, ARTICLE_ID_NAME, each['targetID'], 6)
         for id in ids:
             article = db.get({'articleID': id}, 'article')
             article.update({'tags': get_tags(article['tags'])})
