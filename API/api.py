@@ -100,6 +100,31 @@ def openid():
     return data
 
 
+@app.route('/api/account/phone_message')
+def phone_message():
+    phone_num = request.values.get('phone')
+    check_code = ''
+    length = 6
+    dict = ['0','1','2','3','4','5','6','7','8','9']
+    for i in range(length):
+        idx = random.randint(0,len(dict) -1)
+        check_code += dict[idx]
+    host = 'http://dingxin.market.alicloudapi.com'
+    path = '/dx/sendSms'
+    method = 'POST'
+    appcode = 'f3c635d6f4a24c1e9e4af7f0622030eb'
+    querys = 'mobile='+ phone_num +'&param=code%3A' + check_code +'&tpl_id=TP1711063'
+    bodys = {}
+    url = host + path + '?' + querys
+
+    rq = urllib.request.Request(url)
+    rq.method = method
+    rq.add_header('Authorization', 'APPCODE ' + appcode)
+    response = urllib.request.urlopen(rq)
+    content = response.read()
+    return jsonify({'code': 1,'msg':'success','data': check_code,'info':content})
+
+
 @app.route('/api/account/if_register')
 def if_register():
     openid = request.values.get("openid")
