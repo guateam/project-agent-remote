@@ -7,6 +7,7 @@ import datetime
 import urllib.request
 import urllib.parse
 import urllib.error
+import smtplib
 
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
@@ -14,7 +15,8 @@ from API.OCR import ocr
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-
+from email.mime.text import MIMEText
+from email.header import Header
 from API.db import Database, generate_password
 
 from API.utils import *
@@ -123,6 +125,34 @@ def phone_message():
     response = urllib.request.urlopen(rq)
     content = response.read()
     return jsonify({'code': 1,'msg':'success','data': check_code,'info':content})
+
+@app.route('/api/account/send_email')
+def send_email():
+    sender = 'ZhuanPlus@163.com'
+    password = "zhuanplus123"
+
+    receivers = request.values.get('receiver')  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
+    check_code = ''
+    length = 6
+    dict = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+    for i in range(length):
+        idx = random.randint(0, len(dict) - 1)
+        check_code += dict[idx]
+
+    content =  "<html><h3>这是一封来自专+的邮件 </h3><p>尊敬的 专+ 用户，您的验证码为<strong style = 'color:brown'>"+check_code
+    content += "</strong>打死都不要将该验证码告诉他人</p><br><span> 感谢您对 专+ 的使用和支持 </span></html>"
+
+    # 三个参数：第一个为文本内容，第二个 plain 设置文本格式，第三个 utf-8 设置编码
+    message = MIMEText(content, 'html', 'utf-8')
+    message['From'] = "<"+sender+">"  # 发送者
+    message['To'] = "<"+receivers+">"  # 接收者
+    subject = '专+验证码'
+    message['Subject'] = Header(subject, 'utf-8')
+
+    smtpObj = smtplib.SMTP('smtp.163.com')
+    smtpObj.login(sender, password)
+    smtpObj.sendmail(sender, receivers, message.as_string())
+    return jsonify({'code': 1, 'msg':'success' ,'data': check_code})
 
 
 @app.route('/api/account/if_register')
