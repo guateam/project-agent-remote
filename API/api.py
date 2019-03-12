@@ -108,9 +108,61 @@ def if_register():
     db = Database()
     user = db.sql("select * from users where openid='%s' " % openid)
     if user:
-        return jsonify({'code': 1, 'msg': 'the user is exist'})
+        if user['openid'] == '' or user['openid']:
+            return jsonify({'code': 1, 'msg': 'the user is total exist'})
+        else:
+            return jsonify({'code': -1, 'msg': 'the user is exist,but not bind weixin'})
 
     return jsonify({'code': 0, 'msg': 'the user is not exist'})
+
+
+@app.route('/api/account/wx_register',methods=['POST'])
+def wx_register():
+    """
+    在微信端的绑定邮箱 + 注册
+    :return:
+    """
+    email = request.form['email']
+    password = request.form['password']
+    openid = ""
+    nickname = ''
+    gender = ""
+    head = ""
+    # 检查是否存在来自微信的openid参数传入
+    keys = request.form.keys()
+    if 'openid' in keys:
+        openid = request.form['openid']
+    if 'nickname' in keys:
+        nickname = request.form['nickname']
+    if 'gender' in keys:
+        gender = request.form['gender']
+    if 'head' in keys:
+        head = request.form['head']
+
+    db = Database()
+    email_check = db.get({'email': email}, 'users')
+    if not email_check:
+        flag = db.insert({
+            'email': email,
+            'password': generate_password(password),
+            'nickname': nickname,
+            'openid': openid,
+            'gender': gender,
+            'headportrait': head
+        }, 'users')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
+        else:
+            return jsonify({'code': -1, 'msg': 'unable to insert'})
+    else:
+        if email_check['openid'] == '' or email_check['openid'] is None:
+            if email_check['password'] != generate_password(password):
+                return jsonify({'code': -4, 'msg': 'password error'})
+
+            db.update({'email': email}, {'openid': openid}, 'users')
+            return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
+        else:
+            return jsonify({'code': -3, 'msg': 'the email has already been used in weixin'})  # 成功返回
 
 
 @app.route('/api/account/get_user_group')
