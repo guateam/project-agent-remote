@@ -102,9 +102,81 @@ def openid():
     return data
 
 
-@app.route('/api/account/phone_message')
-def phone_message():
-    phone_num = request.values.get('phone')
+@app.route('/api/account/send_check_code')
+def send_check_code():
+    """
+    发送验证码到手机或邮箱
+    :return:
+    """
+    account = request.values.get('account')
+    check_code = ""
+    db = Database()
+    # 手机号验证
+    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+        check_code = send_email(account)
+        db.update({'email':account}, {'check_code': check_code}, 'users')
+    elif re.match(r"^1[35678]\d{9}$", account):
+        check_code = phone_message(account)
+        db.update({'phonenumber': account}, {'check_code': check_code}, 'users')
+    else:
+        return jsonify({'code':0 , 'msg':'error'})
+
+    return jsonify({'code': 1 ,'msg': 'success'})
+
+
+@app.route('/api/account/check_code')
+def check_code():
+    """
+    检查验证码是否正确
+    :return:
+    """
+    account = request.values.get('account')
+    code = request.values.get('check_code')
+    db = Database()
+    # 字段名
+    target = ''
+    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+        target = 'email'
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = 'phonenumber'
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    check_code = db.sql("select check_code from users where "+target + "='%s'" % account )
+
+    if check_code and check_code[0]['check_code'] == code:
+        return jsonify({'code': 1, 'msg': 'success' })
+
+    return jsonify({'code': 0, 'msg': 'error'})
+
+
+@app.route('/api/account/update_password')
+def update_password():
+    """
+    更新密码
+    :return:
+    """
+    account = request.values.get('account')
+    password = request.values.get('password')
+    db = Database()
+    # 字段名
+    target = ''
+    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+        target = 'email'
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = 'phonenumber'
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    result = db.update({target: account}, {'password': generate_password(password)}, 'users')
+
+    if result:
+        return jsonify({'code': 1, 'msg': 'success'})
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+
+def phone_message(phone_num):
     check_code = ''
     length = 6
     dict = ['0','1','2','3','4','5','6','7','8','9']
@@ -124,14 +196,13 @@ def phone_message():
     rq.add_header('Authorization', 'APPCODE ' + appcode)
     response = urllib.request.urlopen(rq)
     content = response.read()
-    return jsonify({'code': 1,'msg':'success','data': check_code,'info':content})
+    return check_code
 
-@app.route('/api/account/send_email')
-def send_email():
+
+def send_email(receivers):
     sender = 'ZhuanPlus@163.com'
     password = "zhuanplus123"
 
-    receivers = request.values.get('receiver')  # 接收邮件，可设置为你的QQ邮箱或者其他邮箱
     check_code = ''
     length = 6
     dict = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
@@ -146,13 +217,15 @@ def send_email():
     message = MIMEText(content, 'html', 'utf-8')
     message['From'] = "<"+sender+">"  # 发送者
     message['To'] = "<"+receivers+">"  # 接收者
+    # message['Cc'] = Header(receivers, 'utf-8')  # 抄送者
+    # 邮件标题
     subject = '专+验证码'
     message['Subject'] = Header(subject, 'utf-8')
 
     smtpObj = smtplib.SMTP('smtp.163.com')
     smtpObj.login(sender, password)
     smtpObj.sendmail(sender, receivers, message.as_string())
-    return jsonify({'code': 1, 'msg':'success' ,'data': check_code})
+    return check_code
 
 
 @app.route('/api/account/if_register')
