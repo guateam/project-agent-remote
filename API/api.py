@@ -103,6 +103,8 @@ def openid():
 @app.route('/api/account/if_register')
 def if_register():
     openid = request.values.get("openid")
+    if openid == '':
+        return jsonify({'code': -1, 'msg': 'openid error'})
     db = Database()
     user = db.sql("select * from users where openid='%s' " % openid)
     if user:
@@ -163,7 +165,7 @@ def register():
     email = request.form['email']
     password = request.form['password']
     openid = ""
-    nickname = '用户'
+    nickname = ''
     gender = ""
     head = ""
     # 检查是否存在来自微信的openid参数传入
@@ -181,14 +183,19 @@ def register():
     email_check = db.get({'email': email}, 'users')
     if not email_check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
+        if nickname == '':
+            nickname = '用户'
+            for value in nick_name_list:
+                nickname += value
 
-        for value in nick_name_list:
-            nickname += value
         # 之后微信实装了在这里补上openid的注册
         flag = db.insert({
             'email': email,
             'password': generate_password(password),
-            'nickname': nickname
+            'nickname': nickname,
+            'openid': openid,
+            'gender': gender,
+            'headportrait': head
         }, 'users')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
