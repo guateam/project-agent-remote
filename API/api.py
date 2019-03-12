@@ -310,9 +310,17 @@ def login():
         """
     username = request.form['username']
     password = request.form['password']
+    # 字段名
+    target = ''
+    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', username):
+        target = 'email'
+    elif re.match(r"^1[35678]\d{9}$", username):
+        target = 'phonenumber'
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
 
     db = Database()
-    user = db.get({'email': username, 'password': generate_password(password)}, 'users')
+    user = db.get({target: username, 'password': generate_password(password)}, 'users')
     if user:
         data = {
             'user_id': user['userID'],
