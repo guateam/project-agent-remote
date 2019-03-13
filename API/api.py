@@ -3093,7 +3093,9 @@ def classify_all_tag():
         for value in target:
             value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
 
-    return jsonify({'code': 1, 'msg': 'success', 'data': target})
+        result.append(target)
+
+    return jsonify({'code': 1, 'msg': 'success', 'data': result})
 
 
 def flow_loading(data, each, page, mode=0):
