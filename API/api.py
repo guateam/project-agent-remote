@@ -257,14 +257,13 @@ def wx_register():
     gender = ""
     head = ""
     # 检查是否存在来自微信的openid参数传入
-    keys = request.form.keys()
-    if 'openid' in keys:
+    if 'openid' in request.form.keys():
         openid = request.form['openid']
-    if 'nickname' in keys:
+    if 'nickname' in request.form.keys():
         nickname = request.form['nickname']
-    if 'gender' in keys:
+    if 'gender' in request.form.keys():
         gender = request.form['gender']
-    if 'head' in keys:
+    if 'head' in request.form.keys():
         head = request.form['head']
 
     db = Database()
@@ -2671,10 +2670,13 @@ def back_get_articles():
     db = Database()
     user = db.get({'token': token, 'usergroup': 0}, 'users')
     if user:
-        article = db.get({}, 'articleinfo', 0)
-        for value in article:
+        normal_article = db.get({'state': 0}, 'articleinfo', 0)
+        checking_article = db.get({'state': 1}, 'articleinfo', 0)
+        for value in normal_article:
             value.update({'tags': get_tags(value['tags'])})
-        return jsonify({'code': 1, 'msg': 'success', 'data': article})
+        for value in checking_article:
+            value.update({'tags': get_tags(value['tags'])})
+        return jsonify({'code': 1, 'msg': 'success', 'data': {'normal':normal_article, 'checking':checking_article}})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
