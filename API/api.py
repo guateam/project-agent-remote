@@ -112,7 +112,7 @@ def send_check_code():
     check_code = ""
     db = Database()
     # 手机号验证
-    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
         check_code = send_email(account)
         db.update({'email':account}, {'check_code': check_code}, 'users')
     elif re.match(r"^1[35678]\d{9}$", account):
@@ -135,7 +135,7 @@ def check_code():
     db = Database()
     # 字段名
     target = ''
-    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
         target = 'email'
     elif re.match(r"^1[35678]\d{9}$", account):
         target = 'phonenumber'
@@ -161,7 +161,7 @@ def update_password():
     db = Database()
     # 字段名
     target = ''
-    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', account):
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
         target = 'email'
     elif re.match(r"^1[35678]\d{9}$", account):
         target = 'phonenumber'
@@ -312,7 +312,7 @@ def login():
     password = request.form['password']
     # 字段名
     target = ''
-    if re.match(r'[0-9a-zA-Z_]{0,19}@163.com', username):
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', username):
         target = 'email'
     elif re.match(r"^1[35678]\d{9}$", username):
         target = 'phonenumber'
