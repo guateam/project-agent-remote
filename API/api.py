@@ -114,14 +114,14 @@ def send_check_code():
     # 手机号验证
     if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
         check_code = send_email(account)
-        db.update({'email':account}, {'check_code': check_code}, 'users')
+        db.update({'email': account}, {'check_code': check_code}, 'users')
     elif re.match(r"^1[35678]\d{9}$", account):
         check_code = phone_message(account)
         db.update({'phonenumber': account}, {'check_code': check_code}, 'users')
     else:
-        return jsonify({'code':0 , 'msg':'error'})
+        return jsonify({'code': 0, 'msg': 'error'})
 
-    return jsonify({'code': 1 ,'msg': 'success'})
+    return jsonify({'code': 1, 'msg': 'success'})
 
 
 @app.route('/api/account/check_code')
@@ -142,10 +142,10 @@ def check_code():
     else:
         return jsonify({'code': 0, 'msg': 'error'})
 
-    check_code = db.sql("select check_code from users where "+target + "='%s'" % account )
+    check_code = db.sql("select check_code from users where " + target + "='%s'" % account)
 
     if check_code and check_code[0]['check_code'] == code:
-        return jsonify({'code': 1, 'msg': 'success' })
+        return jsonify({'code': 1, 'msg': 'success'})
 
     return jsonify({'code': 0, 'msg': 'error'})
 
@@ -179,15 +179,15 @@ def update_password():
 def phone_message(phone_num):
     check_code = ''
     length = 6
-    dict = ['0','1','2','3','4','5','6','7','8','9']
+    dict = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
     for i in range(length):
-        idx = random.randint(0,len(dict) -1)
+        idx = random.randint(0, len(dict) - 1)
         check_code += dict[idx]
     host = 'http://dingxin.market.alicloudapi.com'
     path = '/dx/sendSms'
     method = 'POST'
     appcode = 'f3c635d6f4a24c1e9e4af7f0622030eb'
-    querys = 'mobile='+ phone_num +'&param=code%3A' + check_code +'&tpl_id=TP1711063'
+    querys = 'mobile=' + phone_num + '&param=code%3A' + check_code + '&tpl_id=TP1711063'
     bodys = {}
     url = host + path + '?' + querys
 
@@ -210,13 +210,13 @@ def send_email(receivers):
         idx = random.randint(0, len(dict) - 1)
         check_code += dict[idx]
 
-    content =  "<html><h3>这是一封来自专+的邮件 </h3><p>尊敬的 专+ 用户，您的验证码为<strong style = 'color:brown'>"+check_code
+    content = "<html><h3>这是一封来自专+的邮件 </h3><p>尊敬的 专+ 用户，您的验证码为<strong style = 'color:brown'>" + check_code
     content += "</strong>打死都不要将该验证码告诉他人</p><br><span> 感谢您对 专+ 的使用和支持 </span></html>"
 
     # 三个参数：第一个为文本内容，第二个 plain 设置文本格式，第三个 utf-8 设置编码
     message = MIMEText(content, 'html', 'utf-8')
-    message['From'] = "<"+sender+">"  # 发送者
-    message['To'] = "<"+receivers+">"  # 接收者
+    message['From'] = "<" + sender + ">"  # 发送者
+    message['To'] = "<" + receivers + ">"  # 接收者
     # message['Cc'] = Header(receivers, 'utf-8')  # 抄送者
     # 邮件标题
     subject = '专+验证码'
@@ -244,7 +244,7 @@ def if_register():
     return jsonify({'code': 0, 'msg': 'the user is not exist'})
 
 
-@app.route('/api/account/wx_register',methods=['POST'])
+@app.route('/api/account/wx_register', methods=['POST'])
 def wx_register():
     """
     在微信端的绑定邮箱 + 注册
@@ -3083,11 +3083,11 @@ def classify_all_tag():
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
         elif type == 2:
             target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
 
         for value in target:
@@ -4260,11 +4260,20 @@ def add_demand():
         title = request.form['title']
         cover = request.form['cover']
         flag = db.insert(
-            {'userID': user['userID'], 'content': content, 'allowedUserGroup': allowed_user, 'price': price,
-             'title': title, 'cover': cover,
-             'tags': tags}, 'demands')
+            {'name': title, 'description': title + " 自动附属群", 'userID': user['userID'], 'head_portrait': cover},
+            'groups')
+
         if flag:
-            return jsonify({'code': 1, 'msg': 'success'})
+            group = db.get({'userID': user['userID']}, 'groups', 0)
+            db.insert({'groupID': group[len(group) - 1]['groupID'], 'userID': user['userID'], 'state': 0},
+                      'group_members')
+            flag = db.insert(
+                {'userID': user['userID'], 'content': content, 'allowedUserGroup': allowed_user, 'price': price,
+                 'title': title, 'cover': cover, 'group': group[len(group) - 1]['groupID'],
+                 'tags': tags}, 'demands')
+            if flag:
+                return jsonify({'code': 1, 'msg': 'success'})
+            return jsonify({'code': -2, 'msg': 'unable to create group'})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -4317,6 +4326,7 @@ def confirm_signed_user():
         target = request.values.get('target')
         flag = db.update({'userID': user_id, 'target': target}, {'state': 1}, 'sign_demand')
         demand = db.get({'demandID': target}, 'demands')
+        db.insert({'userID': user_id, 'groupID': demand['group'], 'state': 2}, 'group_members')
         set_sys_message(user['userID'], 1, '您之前报名的' + demand['title'] + '已由企业审核通过，您现在是该需求的参与者了！', user_id, '报名信息')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
@@ -4752,6 +4762,27 @@ def delete_demand():
             set_sys_message(user['userID'], 1, '您发布的需求 ' + flag['title'] + ' 已被管理员清除！', flag['userID'], '需求清除')
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/board/get_my_demand')
+def get_my_demand():
+    """
+    获取我所有的需求
+    :return:
+    """
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        demands = db.get({'userID': user['userID']}, 'sign_demand', 0)
+        data = []
+        for value in demands:
+            demand = db.get({'demandID': value['target']}, 'demands')
+            if demand:
+                demand.update({'tags': get_tags(demand['tags'])})
+                data.append(demand)
+        return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
