@@ -274,16 +274,18 @@ def wx_register():
     db = Database()
     email_check = db.get({'email': email}, 'users')
     if not email_check:
+        token = new_token()
         flag = db.insert({
             'email': email,
             'password': generate_password(password),
             'nickname': nickname,
             'openid': openid,
             'gender': gender,
-            'headportrait': head
+            'headportrait': head,
+            'token': token,
         }, 'users')
         if flag:
-            return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
+            return jsonify({'code': 1, 'msg': 'success', 'data': token})  # 成功返回
         else:
             return jsonify({'code': -1, 'msg': 'unable to insert'})
     else:
@@ -291,8 +293,9 @@ def wx_register():
             if email_check['password'] != generate_password(password):
                 return jsonify({'code': -4, 'msg': 'password error'})
 
-            db.update({'email': email}, {'openid': openid}, 'users')
-            return jsonify({'code': 1, 'msg': 'success'})  # 成功返回
+            token = new_token()
+            db.update({'email': email}, {'openid': openid, 'token': token}, 'users')
+            return jsonify({'code': 1, 'msg': 'success', 'data': token})  # 成功返回
         else:
             return jsonify({'code': -3, 'msg': 'the email has already been used in weixin'})  # 成功返回
 
