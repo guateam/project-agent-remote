@@ -2940,6 +2940,32 @@ def get_article():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/article/pass_article')
+def pass_article():
+    id = request.values.get('id')
+    result = article_state_change(0, id)
+    if result:
+        return jsonify({'code': 1, 'msg': "success"})
+
+    return jsonify({'code': 0, 'msg': "fail"})
+
+
+@app.route('/api/article/unpass_article')
+def unpass_article():
+    id = request.values.get('id')
+    result = article_state_change(-1, id)
+    if result:
+        return jsonify({'code': 1, 'msg': "success"})
+
+    return jsonify({'code': 0, 'msg': "fail"})
+
+
+def article_state_change(state, id):
+    db = Database()
+    result = db.update({'articleID': id}, {'state': state}, 'article')
+    return result
+
+
 """
     首页接口
 """
