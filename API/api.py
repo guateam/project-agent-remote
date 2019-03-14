@@ -2684,7 +2684,7 @@ def back_get_articles():
             value.update({'tags': get_tags(value['tags'])})
         for value in checking_article:
             value.update({'tags': get_tags(value['tags'])})
-        return jsonify({'code': 1, 'msg': 'success', 'data': {'normal':normal_article, 'checking':checking_article}})
+        return jsonify({'code': 1, 'msg': 'success', 'data': {'normal': normal_article, 'checking': checking_article}})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
@@ -5593,6 +5593,133 @@ def get_tag_tree():
         children = db.get({'father': value['id']}, 'tags', 0)
         value.update({'children': children})
     return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+
+
+@app.route('/api/tags/delete_tag')
+def delete_tag():
+    """
+    清除tag
+    :return:
+    """
+    token = request.headers.get('X-Token')
+    db = Database()
+    user = db.get({'token': token, 'usergroup': 0}, 'users')
+    if user:
+        tag_id = request.values.get('tag_id')
+        flag = db.delete({'id': tag_id}, 'tags')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to delete'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/tags/edit_tag', methods=['POST'])
+def edit_tag():
+    """
+    修改标签
+    :return:
+    """
+    token = request.headers.get('X-Token')
+    db = Database()
+    user = db.get({'token': token, 'usergroup': 0}, 'users')
+    if user:
+        tag_id = request.form['id']
+        name = request.form['name']
+        tag_type = request.form['type']
+        flag = db.update({'id': tag_id}, {'name': name, 'type': tag_type}, 'tags')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/tags/merge_tags')
+def merge_tags():
+    """
+    合并标签
+    :return:
+    """
+    token = request.headers.get('X-Token')
+    db = Database()
+    user = db.get({'token': token, 'usergroup': 0}, 'users')
+    if user:
+        tag_id = request.values.get('tag_id')
+        merge_id = request.values.get('merge_id')
+        question = db.get({}, 'questions', 0)
+        for value in question:
+            tags = value['tags'].split(',')
+            tags.remove(merge_id)
+            tags.append(tag_id)
+            db.update({'questionID': value['questionID']}, {'tags': tags.join(',')}, 'questions')
+        answer = db.get({}, 'answers', 0)
+        for value in answer:
+            tags = value['tags'].split(',')
+            tags.remove(merge_id)
+            tags.append(tag_id)
+            db.update({'answerID': value['answerID']}, {'tags': tags.join(',')}, 'answers')
+        article = db.get({}, 'article', 0)
+        for value in article:
+            tags = value['tags'].split(',')
+            tags.remove(merge_id)
+            tags.append(tag_id)
+            db.update({'articleID': value['articleID']}, {'tags': tags.join(',')}, 'article')
+        demand = db.get({}, 'demands')
+        for value in demand:
+            tags = value['tags'].split(',')
+            tags.remove(merge_id)
+            tags.append(tag_id)
+            db.update({'demandID': value['demandID']}, {'tags': tags.join(',')}, 'demands')
+        flag = db.delete({'id': merge_id}, 'tags')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to merge'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/tags/back_add_tag', methods=['POST'])
+def back_add_tag():
+    """
+    添加tag
+    :return:
+    """
+    db = Database()
+    token = request.headers.get('X-Token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        name = request.form['name']
+        tag_type = request.form['tag_type']
+        if db.get({'name': name, 'type': tag_type}, 'tags'):
+            return jsonify({'code': -2, 'msg': 'tag is already exist'})
+        flag = db.insert({'name': name, 'type': tag_type}, 'tags')
+        if flag:
+            tag_id = db.get({'name': name, 'type': tag_type}, 'tags')
+            return jsonify({'code': 1, 'msg': 'success', 'data': tag_id})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/tags/back_add_child_tag', methods=['POST'])
+def back_add_child_tag():
+    """
+    添加tag
+    :return:
+    """
+    db = Database()
+    token = request.headers.get('X-Token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        name = request.form['name']
+        tag_type = request.form['tag_type']
+        father = request.form['father']
+        if db.get({'name': name, 'type': tag_type, 'father': father}, 'tags'):
+            return jsonify({'code': -2, 'msg': 'tag is already exist'})
+        flag = db.insert({'name': name, 'type': tag_type, 'father': father}, 'tags')
+        if flag:
+            tag_id = db.get({'name': name, 'type': tag_type, 'father': father}, 'tags')
+            return jsonify({'code': 1, 'msg': 'success', 'data': tag_id})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
 
 
 if __name__ == '__main__':
