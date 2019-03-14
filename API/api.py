@@ -5647,28 +5647,44 @@ def merge_tags():
         merge_id = request.values.get('merge_id')
         question = db.get({}, 'questions', 0)
         for value in question:
+            if value['tags'] is None:
+                continue
             tags = value['tags'].split(',')
-            tags.remove(merge_id)
-            tags.append(tag_id)
-            db.update({'questionID': value['questionID']}, {'tags': tags.join(',')}, 'questions')
+            if merge_id in tags:
+                tags.remove(merge_id)
+                if tag_id not in tags:
+                    tags.append(tag_id)
+            db.update({'questionID': value['questionID']}, {'tags': ','.join(tags)}, 'questions')
         answer = db.get({}, 'answers', 0)
         for value in answer:
+            if value['tags'] is None:
+                continue
             tags = value['tags'].split(',')
-            tags.remove(merge_id)
-            tags.append(tag_id)
-            db.update({'answerID': value['answerID']}, {'tags': tags.join(',')}, 'answers')
+            if merge_id in tags:
+                tags.remove(merge_id)
+                if tag_id not in tags:
+                    tags.append(tag_id)
+            db.update({'answerID': value['answerID']}, {'tags': ','.join(tags)}, 'answers')
         article = db.get({}, 'article', 0)
         for value in article:
+            if value['tags'] is None:
+                continue
             tags = value['tags'].split(',')
-            tags.remove(merge_id)
-            tags.append(tag_id)
-            db.update({'articleID': value['articleID']}, {'tags': tags.join(',')}, 'article')
+            if merge_id in tags:
+                tags.remove(merge_id)
+                if tag_id not in tags:
+                    tags.append(tag_id)
+            db.update({'articleID': value['articleID']}, {'tags': ','.join(tags)}, 'article')
         demand = db.get({}, 'demands')
         for value in demand:
+            if value['tags'] is None:
+                continue
             tags = value['tags'].split(',')
-            tags.remove(merge_id)
-            tags.append(tag_id)
-            db.update({'demandID': value['demandID']}, {'tags': tags.join(',')}, 'demands')
+            if merge_id in tags:
+                tags.remove(merge_id)
+                if tag_id not in tags:
+                    tags.append(tag_id)
+            db.update({'demandID': value['demandID']}, {'tags': ','.join(tags)}, 'demands')
         flag = db.delete({'id': merge_id}, 'tags')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
