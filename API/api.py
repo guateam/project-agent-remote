@@ -187,7 +187,7 @@ def phone_message(phone_num):
     path = '/dx/sendSms'
     method = 'POST'
     appcode = 'f3c635d6f4a24c1e9e4af7f0622030eb'
-    querys = 'mobile=' + phone_num + '&param=code%3A' + check_code + '&tpl_id=TP1711063'
+    querys = 'mobile=' + phone_num + '&param=code%3A' + check_code + '&tpl_id=TP19031326'
     bodys = {}
     url = host + path + '?' + querys
 
