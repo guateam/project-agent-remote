@@ -232,12 +232,17 @@ def send_email(receivers):
 def if_register():
     openid = request.values.get("openid")
     if openid == '':
-        return jsonify({'code': -1, 'msg': 'openid error'})
+        return jsonify({'code': -2, 'msg': 'openid error'})
     db = Database()
     user = db.sql("select * from users where openid='%s' " % openid)
     if user:
-        if user['openid'] == '' or user['openid']:
-            return jsonify({'code': 1, 'msg': 'the user is total exist'})
+        if user[0]['openid'] and user[0]['openid'] != '':
+            token = new_token()
+            db.update({'openid': openid},
+                      {'token': token,
+                       'last_login': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))},
+                      'users')  # 更新token
+            return jsonify({'code': 1, 'msg': 'the user is total exist', 'data': token})
         else:
             return jsonify({'code': -1, 'msg': 'the user is exist,but not bind weixin'})
 
