@@ -56,6 +56,8 @@ def compute_tf(word,content):
     # 计数器
     count_all = 0
     count_certain = 0
+    # 最终的tf值
+    tf = 0
     # 获取词语集合
     for wd in a_word:
         if wd not in punctuation and wd not in stopword:
@@ -65,7 +67,9 @@ def compute_tf(word,content):
                 # 特定词语数增加
                 count_certain += 1
     # 计算tf值
-    tf = count_all/count_certain
+    if(count_certain > 0):
+        tf = count_all/count_certain
+
     return tf
 
 
