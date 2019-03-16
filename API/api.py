@@ -110,12 +110,19 @@ def send_check_code():
     """
     account = request.values.get('account')
     check_code = ""
+    user = None
     db = Database()
     # 手机号验证
     if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        user = db.get({'email':account}, 'users')
+        if not user:
+            return jsonify({'code': -1, 'msg': 'user not exist'})
         check_code = send_email(account)
         db.update({'email': account}, {'check_code': check_code}, 'users')
     elif re.match(r"^1[35678]\d{9}$", account):
+        user = db.get({'phonenumber':account}, 'users')
+        if not user:
+            return jsonify({'code': -1, 'msg': 'user not exist'})
         check_code = phone_message(account)
         db.update({'phonenumber': account}, {'check_code': check_code}, 'users')
     else:
