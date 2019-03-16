@@ -364,26 +364,31 @@ def register():
     注册
     :return: code(-1=用户已存在，1=成功)
     """
-    email = request.form['email']
+    account = request.form['email']
     password = request.form['password']
     openid = ""
     nickname = ''
     gender = ""
     head = ""
-    # 检查是否存在来自微信的openid参数传入
-    keys = request.form.keys()
-    if 'openid' in keys:
-        openid = request.form['openid']
-    if 'nickname' in keys:
+    check = False
+    dict_name = ""
+
+    if 'nickname' in request.form.keys():
         nickname = request.form['nickname']
-    if 'gender' in keys:
+    if 'gender' in request.form.keys():
         gender = request.form['gender']
-    if 'head' in keys:
+    if 'head' in request.form.keys():
         head = request.form['head']
 
     db = Database()
-    email_check = db.get({'email': email}, 'users')
-    if not email_check:
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        check = db.get({'email': account}, 'users')
+        dict_name = "email"
+    elif re.match(r"^1[35678]\d{9}$", account):
+        check = db.get({'phonenumber': account}, 'users')
+        dict_name = "phonenumber"
+
+    if not check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
         if nickname == '':
             nickname = '用户'
@@ -392,7 +397,7 @@ def register():
 
         # 之后微信实装了在这里补上openid的注册
         flag = db.insert({
-            'email': email,
+            dict_name: account,
             'password': generate_password(password),
             'nickname': nickname,
             'openid': openid,
