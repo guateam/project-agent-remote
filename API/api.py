@@ -347,7 +347,7 @@ def login():
             'follow': db.count({'userID': user['userID']}, 'followuser'),
             'fans': db.count({'target': user['userID']}, 'followuser')
         }
-        result = db.update({'email': username, 'password': generate_password(password)},
+        result = db.update({target: username, 'password': generate_password(password)},
                            {'token': new_token(),
                             'last_login': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))},
                            'users')  # 更新token
