@@ -5434,6 +5434,26 @@ def delete_group():
         return jsonify({'code': -1, 'msg': 'unable to delete'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
+@app.route('/api/group/exit_group')
+def exit_group():
+    """
+        退出群聊
+    """
+    token=request.values.get('token')
+    db=Database()
+    user=db.get({'token':token},'users')
+    if user:
+        group_id=request.values.get('group_id')
+        group=db.get({'groupID':group_id},'groups')
+        if group:
+            flag=db.delete({'userID':user['userID'],'groupID':group_id},'group_members')
+            if flag:
+                call_group_members(0, '用户 ' + user['nickname'] + ' 已退出群聊 ' +
+                                    group['name'] + '', group_id)
+                return jsonify({'code':1,'msg':'success'})
+            return jsonify({'code':-1,'msg':'unable to delete'})
+        return jsonify({'code':-2,'msg':'unknow group'})
+    return jsonify({'code':0,'msg':'unexpected user'})
 
 """
     活动接口
