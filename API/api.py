@@ -1896,7 +1896,7 @@ def get_answer_comment_list():
     db = Database()
     answer = db.get({'answerID': answer_id}, 'answers')
     if answer:
-        comment_list = db.get({'answerID': answer_id}, 'answercomments', 0)
+        comment_list = db.get({'answerID': answer_id}, 'answer_comments_info', 0)
         data = []
         for value in comment_list:
             user = db.get({'userID': value['userID']}, 'users')
@@ -5306,7 +5306,7 @@ def get_groups():
         groups = db.get({'userID': user['userID'], 'group_state': 0}, 'group_members_info', 0)
         data = []
         for value in groups:
-            message = db.get({'groupID': value['groupID']}, 'group_message_info')
+            message = db.get({'groupID': value['groupID']}, 'group_message_info',0)
             last = {
                 'nickname': '',
                 'content': "",
@@ -5746,6 +5746,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000)
