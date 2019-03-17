@@ -418,7 +418,7 @@ def register():
         check = db.get({'phonenumber': account}, 'users')
         dict_name = "phonenumber"
     else:
-        return jsonify({'code': -3, 'msg': 'account format error,not emali or phonenumber'})
+        return jsonify({'code': -3, 'msg': 'account format error,not email or phonenumber'})
 
     if not check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
