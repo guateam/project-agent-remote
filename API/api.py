@@ -417,6 +417,8 @@ def register():
     elif re.match(r"^1[35678]\d{9}$", account):
         check = db.get({'phonenumber': account}, 'users')
         dict_name = "phonenumber"
+    else:
+        return jsonify({'code': -3, 'msg': 'account format error,not emali or phonenumber'})
 
     if not check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
