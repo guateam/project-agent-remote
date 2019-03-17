@@ -183,6 +183,36 @@ def update_password():
         return jsonify({'code': 0, 'msg': 'error'})
 
 
+@app.route('/api/account/validate')
+def validate():
+    """
+    新账号验证
+    :return:
+    """
+    account = request.values.get('account')
+    check_code = request.values.get('check_code')
+    target = ""
+
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        target = "email"
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = "phonenumber"
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    db = Database()
+    user = db.get({target: account, 'check_code': check_code}, 'users')
+    if not user:
+        return jsonify({'code': -1, 'msg': 'check code error'})
+
+    result = db.update({target: account}, {'validate': 1}, 'users')
+
+    if result:
+        return jsonify({'code': 1, 'msg': 'success'})
+
+    return jsonify({'code': 0, 'msg': 'error'})
+
+
 def phone_message(phone_num):
     check_code = ''
     length = 6
