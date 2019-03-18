@@ -337,6 +337,46 @@ def wx_register():
             return jsonify({'code': -3, 'msg': 'the email has already been used in weixin'})  # 成功返回
 
 
+@app.route('/api/account/bind_email')
+def bind_email():
+    """
+    绑定邮箱
+    :return:
+    """
+    token = request.valules.get('token')
+    new_email = request.values.get('email')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'user is not login or exist'})
+
+    result = db.update({'token': token}, {'email':new_email}, 'users')
+    if not result:
+        return jsonify({'code': -1, 'msg': 'unable to update'})
+
+    return jsonify({'code': 1, 'msg': 'success'})
+
+
+@app.route('/api/account/bind_phonenumber')
+def bind_phonenumber():
+    """
+    绑定手机号
+    :return:
+    """
+    token = request.valules.get('token')
+    new_phone = request.values.get('phonenumber')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'user is not login or exist'})
+
+    result = db.update({'token': token}, {'phonenumber': new_phone}, 'users')
+    if not result:
+        return jsonify({'code': -1, 'msg': 'unable to update'})
+
+    return jsonify({'code': 1, 'msg': 'success'})
+
+
 @app.route('/api/account/get_user_group')
 def get_user_group():
     """
