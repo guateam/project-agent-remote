@@ -618,6 +618,7 @@ def get_user_by_token():
             'email': user['email'],
             'description': user['description'],
             'state': user['state'],
+            'phonenumber': user['phonenumber'],
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
