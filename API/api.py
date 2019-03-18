@@ -392,6 +392,46 @@ def get_user_group():
     """
     return jsonify({'code': 1, 'msg': 'success', 'data': USER_GROUP})
 
+@app.route('api/account/check_code_login')
+def check_code_login():
+    """
+    验证码免密支付
+    :return:
+    """
+    code = request.values.get('code')
+    account = request.values.get('account')
+    target = ''
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        target = 'email'
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = 'phonenumber'
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    db = Database()
+    user = db.get({target: account, 'code': code}, 'users')
+    if user:
+        data = {
+            'user_id': user['userID'],
+            'head_portrait': user['headportrait'],
+            'group': get_group(user['usergroup']),
+            'nickname': user['nickname'],
+            'level': get_level(user['exp']),
+            'exp': {'value': user['exp'], 'percent': user['exp'] / LEVEL_EXP[get_level(user['exp'])] * 100},
+            'answer': db.count({'userID': user['userID']}, 'answers'),
+            'follow': db.count({'userID': user['userID']}, 'followuser'),
+            'fans': db.count({'target': user['userID']}, 'followuser')
+        }
+        result = db.update({target: account, 'code': code},
+                           {'token': new_token(),
+                            'last_login': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))},
+                           'users')  # 更新token
+        if result:
+            return jsonify(
+                {'code': 1, 'msg': 'success', 'data': {'token': result['token'], 'data': data}})
+        return jsonify({'code': -1, 'msg': 'unable to update token'})  # 失败返回
+    return jsonify({'code': 0, 'msg': 'unexpected user'})  # 失败返回
+
 
 @app.route('/api/account/login', methods=['POST'])
 def login():
@@ -1285,7 +1325,7 @@ def history_pay():
 
 @app.route('/api/account/weixin_pay_api')
 def weixin_pay_api():
-    appid = 'wx77fddbff5a867762'
+    appid = 'wxe1e434222057b10e'
     body = '商品'
     mch_id = '1517624211'
     KEY = '11111111111111111111111111111111'
@@ -1324,7 +1364,7 @@ def weixin_pay_api():
     post_xml += "<spbill_create_ip>" + spbill_create_ip + "</spbill_create_ip>"
     post_xml += "<total_fee>" + total_fee + "</total_fee>"
     post_xml += "<trade_type>" + trade_type + "</trade_type>"
-    post_xml += "<sign>" + out_trade_no + "</sign></xml>"
+    post_xml += "<sign>" + sign + "</sign></xml>"
 
     url = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
     req = requests.post("https://api.mch.weixin.qq.com/pay/unifiedorder",
@@ -1378,7 +1418,7 @@ def randomkeys(num):
     :return:
     """
     string = ""
-    for i in len(range(0,num)):
+    for i in range(0,num):
         string += str(random.randint(0,9))
     return string
 
@@ -5981,6 +6021,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
