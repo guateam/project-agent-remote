@@ -392,7 +392,8 @@ def get_user_group():
     """
     return jsonify({'code': 1, 'msg': 'success', 'data': USER_GROUP})
 
-@app.route('api/account/check_code_login')
+
+@app.route('/api/account/check_code_login')
 def check_code_login():
     """
     验证码免密支付
