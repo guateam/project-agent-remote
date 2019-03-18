@@ -1481,8 +1481,8 @@ def change_account_balance(num, token):
         # 若num为负数，钱包可能被扣到负值
         if float(user['account_balance']) + float(num) < 0:
             return -1
-        flag = db.update({'userID': user['userID']}, {'account_balance': float(user['account_balance']) + float(num)},
-                         'users')
+        flag = db.update("update users set account_balance=%f where userID=%s" %(float(user['account_balance']) + float(num),user['userID']))
+
         if flag:
             return 1
         return 0
