@@ -8,7 +8,11 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import smtplib
+import requests
+import lxml
+import hashlib
 
+from bs4 import BeautifulSoup
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
 from API.OCR import ocr
@@ -141,7 +145,7 @@ def check_code():
     code = request.values.get('check_code')
     if code == '':
         return jsonify({'code': 0, 'msg':'error'})
-    
+
     db = Database()
     # 字段名
     target = ''
@@ -1277,6 +1281,130 @@ def history_pay():
     for value in log:
         value.update({'time': value['time'].strftime("%Y-%m-%d")})
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
+
+
+@app.route('/api/account/weixin_pay_api')
+def weixin_pay_api():
+    appid = 'wx77fddbff5a867762'
+    body = '商品'
+    mch_id = '1517624211'
+    KEY = '11111111111111111111111111111111'
+    nonce_str = randomkeys(32)
+    if 'nonce_str' in request.values.keys():
+        nonce_str = request.values.get('nonce_str')
+
+    notify_url = 'http://www.weixin.qq.com/wxpay/pay.php'
+    out_trade_no = randomkeys(24)
+    spbill_create_ip = '104.224.168.56'
+    trade_type = 'JSAPI'
+
+    user_openid = request.values.get('openid')
+    total_fee = request.values.get('total_fee')
+
+    post_data = {
+        'appid':appid,
+        'body':body,
+        'mch_id':mch_id,
+        'nonce_str':nonce_str,
+        'notify_url':notify_url,
+        'openid':user_openid,
+        'out_trade_no':out_trade_no,
+        'spbill_create_ip':spbill_create_ip, #服务器终端ip
+        'total_fee':total_fee, # 总金额
+        'trade_type':trade_type
+    }
+    sign = MakeSign(post_data,KEY)
+    post_xml = "<xml><appid>"+appid+"</appid>"
+    post_xml += "<body>" + body + "</body>"
+    post_xml += "<mch_id>" + mch_id + "</mch_id>"
+    post_xml += "<nonce_str>" + nonce_str + "</nonce_str>"
+    post_xml += "<notify_url>" + notify_url + "</notify_url>"
+    post_xml += "<openid>" + user_openid + "</openid>"
+    post_xml += "<out_trade_no>" + out_trade_no + "</out_trade_no>"
+    post_xml += "<spbill_create_ip>" + spbill_create_ip + "</spbill_create_ip>"
+    post_xml += "<total_fee>" + total_fee + "</total_fee>"
+    post_xml += "<trade_type>" + trade_type + "</trade_type>"
+    post_xml += "<sign>" + out_trade_no + "</sign></xml>"
+
+    url = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
+    req = requests.post("https://api.mch.weixin.qq.com/pay/unifiedorder",
+                        data=post_xml.encode('utf-8'),
+                        headers={'Content-Type': 'text/xml'})
+    msg = req.text.encode('ISO-8859-1').decode('utf-8')
+    xml_dict = xml_to_dict(msg)
+    data = {}
+    if xml_dict['RETURN_CODE'] == 'SUCCESS' and xml_dict['RESULT_CODE'] ==  'SUCCESS':
+        tmp ={}
+
+        tmp['appid'] = appid
+        data['text'] = "正确"
+        tmp['nonceStr'] = nonce_str
+        tmp['package'] = 'prepay_id='+xml_dict['PREPAY_ID']
+        tmp['timeStamp'] = int(time.time())
+        data['state'] = 1
+        data['timeStamp'] = int(time.time())
+        data['nonceStr'] = nonce_str
+        data['signType'] = 'MD5'
+        data['package'] = 'prepay_id=' + xml_dict['PREPAY_ID']
+        data['paySign'] = MakeSign(tmp,KEY)
+        data['out_trade_no'] = out_trade_no
+    else:
+        data['state'] = 0
+        data['text'] = "错误"
+        data['RETURN_CODE'] = xml_dict['RETURN_CODE']
+        data['RETURN_MSG'] = xml_dict['RETURN_MSG']
+
+    return jsonify({'code': data['state'], 'msg': data['text'], 'data':data})
+
+def toUrlParams(param):
+    """
+    将参数拼接为url: key=value&key=value
+    :param param:
+    :return:
+    """
+    string = "";
+    if param:
+        arr = []
+        for key in param.keys():
+            arr.append(key + "=" + str(param[key]))
+        string = '&'.join(arr)
+    return string
+
+
+def randomkeys(num):
+    """
+    生成指定长度的随机数字串
+    :param num:
+    :return:
+    """
+    string = ""
+    for i in len(range(0,num)):
+        string += str(random.randint(0,9))
+    return string
+
+def xml_to_dict(xml_data):
+    """
+    xml转换为字典
+    :param xml_data:
+    :return:
+    """
+    soup = BeautifulSoup(xml_data, features='xml')
+    xml = soup.find('xml')
+    if not xml:
+        return {}
+    # 将 XML 数据转化为 Dict
+    data = dict([(item.name, item.text) for item in xml.find_all()])
+    return data
+
+
+def MakeSign(post,key):
+    string = toUrlParams(post)
+    string = string + "&key=" + str(key)
+    h = hashlib.md5()
+    h.update(bytes(string, encoding='utf-8'))
+    result = h.hexdigest()
+
+    return result
 
 
 def change_account_balance(num, token):
