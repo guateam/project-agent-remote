@@ -29,7 +29,7 @@ class Database(object):
                 user=user,
                 passwd=password,
                 db=db,
-                charset='utf8',
+                charset='utf8mb4',
                 cursorclass=pymysql.cursors.DictCursor
             )
         except pymysql.MySQLError as e:
