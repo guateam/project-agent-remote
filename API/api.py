@@ -113,24 +113,36 @@ def send_check_code():
     :return:
     """
     account = request.values.get('account')
+    aim = account
+    if 'aim' in request.values.keys():
+        aim = request.values.get('aim')
     check_code = ""
     user = None
+    target = ""
     db = Database()
-    # 手机号验证
+    # 验证用户手否存在
     if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
         user = db.get({'email':account}, 'users')
         if not user:
             return jsonify({'code': -1, 'msg': 'user not exist'})
-        check_code = send_email(account)
-        db.update({'email': account}, {'check_code': check_code}, 'users')
+        target = "email"
     elif re.match(r"^1[35678]\d{9}$", account):
         user = db.get({'phonenumber':account}, 'users')
         if not user:
             return jsonify({'code': -1, 'msg': 'user not exist'})
-        check_code = phone_message(account)
-        db.update({'phonenumber': account}, {'check_code': check_code}, 'users')
+        target = "phonenumber"
     else:
         return jsonify({'code': 0, 'msg': 'error'})
+
+    # 根据目标发送类型分情况发送短信和邮件
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', aim):
+        check_code = send_email(aim)
+    elif re.match(r"^1[35678]\d{9}$", aim):
+        check_code = phone_message(aim)
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    db.update({target: account}, {'check_code': check_code}, 'users')
 
     return jsonify({'code': 1, 'msg': 'success'})
 
@@ -159,6 +171,7 @@ def check_code():
     check_code = db.sql("select check_code from users where " + target + "='%s'" % account)
 
     if check_code and check_code[0]['check_code'] == code:
+        db.update({target:account},{'check_code':''}, 'users')
         return jsonify({'code': 1, 'msg': 'success'})
 
     return jsonify({'code': 0, 'msg': 'error'})
@@ -350,7 +363,7 @@ def bind_email():
     绑定邮箱
     :return:
     """
-    token = request.valules.get('token')
+    token = request.values.get('token')
     new_email = request.values.get('email')
     db = Database()
     user = db.get({'token': token}, 'users')
@@ -370,7 +383,7 @@ def bind_phonenumber():
     绑定手机号
     :return:
     """
-    token = request.valules.get('token')
+    token = request.values.get('token')
     new_phone = request.values.get('phonenumber')
     db = Database()
     user = db.get({'token': token}, 'users')
@@ -544,8 +557,12 @@ def set_account_info():
         nickname = request.form['nickname']
         description = request.form['description']
         headportrait = request.form['headportrait']
+        email = request.form['email']
+        phonenumber = request.form['phonenumber']
         flag = db.update({'token': token},
-                         {'nickname': nickname, 'description': description, 'headportrait': headportrait}, 'users')
+                         {'nickname': nickname, 'description': description,
+                          'headportrait': headportrait, 'phonenumber': phonenumber,
+                          'email': email}, 'users')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to update'})
