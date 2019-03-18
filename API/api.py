@@ -139,6 +139,9 @@ def check_code():
     """
     account = request.values.get('account')
     code = request.values.get('check_code')
+    if code == '':
+        return jsonify({'code': 0, 'msg':'error'})
+    
     db = Database()
     # 字段名
     target = ''
