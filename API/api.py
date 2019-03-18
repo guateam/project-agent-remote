@@ -410,7 +410,7 @@ def check_code_login():
         return jsonify({'code': 0, 'msg': 'error'})
 
     db = Database()
-    user = db.get({target: account, 'code': code}, 'users')
+    user = db.get({target: account, 'check_code': code}, 'users')
     if user:
         data = {
             'user_id': user['userID'],
@@ -423,7 +423,7 @@ def check_code_login():
             'follow': db.count({'userID': user['userID']}, 'followuser'),
             'fans': db.count({'target': user['userID']}, 'followuser')
         }
-        result = db.update({target: account, 'code': code},
+        result = db.update({target: account, 'check_code': code},
                            {'token': new_token(),
                             'last_login': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))},
                            'users')  # 更新token
