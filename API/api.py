@@ -122,12 +122,12 @@ def send_check_code():
     db = Database()
     # 验证用户手否存在
     if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
-        user = db.get({'email':account}, 'users')
+        user = db.get({'email': account}, 'users')
         if not user:
             return jsonify({'code': -1, 'msg': 'user not exist'})
         target = "email"
     elif re.match(r"^1[35678]\d{9}$", account):
-        user = db.get({'phonenumber':account}, 'users')
+        user = db.get({'phonenumber': account}, 'users')
         if not user:
             return jsonify({'code': -1, 'msg': 'user not exist'})
         target = "phonenumber"
@@ -156,7 +156,7 @@ def check_code():
     account = request.values.get('account')
     code = request.values.get('check_code')
     if code == '':
-        return jsonify({'code': 0, 'msg':'error'})
+        return jsonify({'code': 0, 'msg': 'error'})
 
     db = Database()
     # 字段名
@@ -171,7 +171,7 @@ def check_code():
     check_code = db.sql("select check_code from users where " + target + "='%s'" % account)
 
     if check_code and check_code[0]['check_code'] == code:
-        db.update({target:account},{'check_code':''}, 'users')
+        db.update({target: account}, {'check_code': ''}, 'users')
         return jsonify({'code': 1, 'msg': 'success'})
 
     return jsonify({'code': 0, 'msg': 'error'})
@@ -370,7 +370,7 @@ def bind_email():
     if not user:
         return jsonify({'code': 0, 'msg': 'user is not login or exist'})
 
-    result = db.update({'token': token}, {'email':new_email}, 'users')
+    result = db.update({'token': token}, {'email': new_email}, 'users')
     if not result:
         return jsonify({'code': -1, 'msg': 'unable to update'})
 
@@ -1361,19 +1361,19 @@ def weixin_pay_api():
     total_fee = request.values.get('total_fee')
 
     post_data = {
-        'appid':appid,
-        'body':body,
-        'mch_id':mch_id,
-        'nonce_str':nonce_str,
-        'notify_url':notify_url,
-        'openid':user_openid,
-        'out_trade_no':out_trade_no,
-        'spbill_create_ip':spbill_create_ip, #服务器终端ip
-        'total_fee':total_fee, # 总金额
-        'trade_type':trade_type
+        'appid': appid,
+        'body': body,
+        'mch_id': mch_id,
+        'nonce_str': nonce_str,
+        'notify_url': notify_url,
+        'openid': user_openid,
+        'out_trade_no': out_trade_no,
+        'spbill_create_ip': spbill_create_ip,  # 服务器终端ip
+        'total_fee': total_fee,  # 总金额
+        'trade_type': trade_type
     }
-    sign = MakeSign(post_data,KEY)
-    post_xml = "<xml><appid>"+appid+"</appid>"
+    sign = MakeSign(post_data, KEY)
+    post_xml = "<xml><appid>" + appid + "</appid>"
     post_xml += "<body>" + body + "</body>"
     post_xml += "<mch_id>" + mch_id + "</mch_id>"
     post_xml += "<nonce_str>" + nonce_str + "</nonce_str>"
@@ -1392,20 +1392,20 @@ def weixin_pay_api():
     msg = req.text.encode('ISO-8859-1').decode('utf-8')
     xml_dict = xml_to_dict(msg)
     data = {}
-    if xml_dict['RETURN_CODE'] == 'SUCCESS' and xml_dict['RESULT_CODE'] ==  'SUCCESS':
-        tmp ={}
+    if xml_dict['RETURN_CODE'] == 'SUCCESS' and xml_dict['RESULT_CODE'] == 'SUCCESS':
+        tmp = {}
 
         tmp['appid'] = appid
         data['text'] = "正确"
         tmp['nonceStr'] = nonce_str
-        tmp['package'] = 'prepay_id='+xml_dict['PREPAY_ID']
+        tmp['package'] = 'prepay_id=' + xml_dict['PREPAY_ID']
         tmp['timeStamp'] = int(time.time())
         data['state'] = 1
         data['timeStamp'] = int(time.time())
         data['nonceStr'] = nonce_str
         data['signType'] = 'MD5'
         data['package'] = 'prepay_id=' + xml_dict['PREPAY_ID']
-        data['paySign'] = MakeSign(tmp,KEY)
+        data['paySign'] = MakeSign(tmp, KEY)
         data['out_trade_no'] = out_trade_no
     else:
         data['state'] = 0
@@ -1413,7 +1413,8 @@ def weixin_pay_api():
         data['RETURN_CODE'] = xml_dict['RETURN_CODE']
         data['RETURN_MSG'] = xml_dict['RETURN_MSG']
 
-    return jsonify({'code': data['state'], 'msg': data['text'], 'data':data})
+    return jsonify({'code': data['state'], 'msg': data['text'], 'data': data})
+
 
 def toUrlParams(param):
     """
@@ -1437,9 +1438,10 @@ def randomkeys(num):
     :return:
     """
     string = ""
-    for i in range(0,num):
-        string += str(random.randint(0,9))
+    for i in range(0, num):
+        string += str(random.randint(0, 9))
     return string
+
 
 def xml_to_dict(xml_data):
     """
@@ -1456,7 +1458,7 @@ def xml_to_dict(xml_data):
     return data
 
 
-def MakeSign(post,key):
+def MakeSign(post, key):
     string = toUrlParams(post)
     string = string + "&key=" + str(key)
     h = hashlib.md5()
@@ -1477,9 +1479,10 @@ def change_account_balance(num, token):
     user = db.get({'token': token}, 'users')
     if user:
         # 若num为负数，钱包可能被扣到负值
-        if user['account_balance'] + num < 0:
+        if float(user['account_balance']) + float(num) < 0:
             return -1
-        flag = db.update({'userID': user['userID']}, {'account_balance': user['account_balance'] + num}, 'users')
+        flag = db.update({'userID': user['userID']}, {'account_balance': float(user['account_balance']) + float(num)},
+                         'users')
         if flag:
             return 1
         return 0
@@ -5580,7 +5583,7 @@ def get_groups():
         groups = db.get({'userID': user['userID'], 'group_state': 0}, 'group_members_info', 0)
         data = []
         for value in groups:
-            message = db.get({'groupID': value['groupID']}, 'group_message_info',0)
+            message = db.get({'groupID': value['groupID']}, 'group_message_info', 0)
             last = {
                 'nickname': '',
                 'content': "",
@@ -5696,26 +5699,28 @@ def delete_group():
         return jsonify({'code': -1, 'msg': 'unable to delete'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
+
 @app.route('/api/group/exit_group')
 def exit_group():
     """
         退出群聊
     """
-    token=request.values.get('token')
-    db=Database()
-    user=db.get({'token':token},'users')
+    token = request.values.get('token')
+    db = Database()
+    user = db.get({'token': token}, 'users')
     if user:
-        group_id=request.values.get('group_id')
-        group=db.get({'groupID':group_id},'groups')
+        group_id = request.values.get('group_id')
+        group = db.get({'groupID': group_id}, 'groups')
         if group:
-            flag=db.delete({'userID':user['userID'],'groupID':group_id},'group_members')
+            flag = db.delete({'userID': user['userID'], 'groupID': group_id}, 'group_members')
             if flag:
                 call_group_members(0, '用户 ' + user['nickname'] + ' 已退出群聊 ' +
-                                    group['name'] + '', group_id)
-                return jsonify({'code':1,'msg':'success'})
-            return jsonify({'code':-1,'msg':'unable to delete'})
-        return jsonify({'code':-2,'msg':'unknow group'})
-    return jsonify({'code':0,'msg':'unexpected user'})
+                                   group['name'] + '', group_id)
+                return jsonify({'code': 1, 'msg': 'success'})
+            return jsonify({'code': -1, 'msg': 'unable to delete'})
+        return jsonify({'code': -2, 'msg': 'unknow group'})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
 
 """
     活动接口
@@ -6031,7 +6036,6 @@ def back_add_child_tag():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-
 if __name__ == '__main__':
     # 开启调试模式，修改代码后不需要重新启动服务即可生效
     # 请勿在生产环境下使用调试模式
@@ -6040,6 +6044,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000)
