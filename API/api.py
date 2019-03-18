@@ -8,7 +8,11 @@ import urllib.request
 import urllib.parse
 import urllib.error
 import smtplib
+import requests
+import lxml
+import hashlib
 
+from bs4 import BeautifulSoup
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
 from API.OCR import ocr
@@ -139,6 +143,9 @@ def check_code():
     """
     account = request.values.get('account')
     code = request.values.get('check_code')
+    if code == '':
+        return jsonify({'code': 0, 'msg':'error'})
+
     db = Database()
     # 字段名
     target = ''
@@ -181,6 +188,36 @@ def update_password():
         return jsonify({'code': 1, 'msg': 'success'})
     else:
         return jsonify({'code': 0, 'msg': 'error'})
+
+
+@app.route('/api/account/validate')
+def validate():
+    """
+    新账号验证
+    :return:
+    """
+    account = request.values.get('account')
+    check_code = request.values.get('check_code')
+    target = ""
+
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        target = "email"
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = "phonenumber"
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    db = Database()
+    user = db.get({target: account, 'check_code': check_code}, 'users')
+    if not user:
+        return jsonify({'code': -1, 'msg': 'check code error'})
+
+    result = db.update({target: account}, {'validate': 1}, 'users')
+
+    if result:
+        return jsonify({'code': 1, 'msg': 'success'})
+
+    return jsonify({'code': 0, 'msg': 'error'})
 
 
 def phone_message(phone_num):
@@ -307,6 +344,46 @@ def wx_register():
             return jsonify({'code': -3, 'msg': 'the email has already been used in weixin'})  # 成功返回
 
 
+@app.route('/api/account/bind_email')
+def bind_email():
+    """
+    绑定邮箱
+    :return:
+    """
+    token = request.valules.get('token')
+    new_email = request.values.get('email')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'user is not login or exist'})
+
+    result = db.update({'token': token}, {'email':new_email}, 'users')
+    if not result:
+        return jsonify({'code': -1, 'msg': 'unable to update'})
+
+    return jsonify({'code': 1, 'msg': 'success'})
+
+
+@app.route('/api/account/bind_phonenumber')
+def bind_phonenumber():
+    """
+    绑定手机号
+    :return:
+    """
+    token = request.valules.get('token')
+    new_phone = request.values.get('phonenumber')
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'user is not login or exist'})
+
+    result = db.update({'token': token}, {'phonenumber': new_phone}, 'users')
+    if not result:
+        return jsonify({'code': -1, 'msg': 'unable to update'})
+
+    return jsonify({'code': 1, 'msg': 'success'})
+
+
 @app.route('/api/account/get_user_group')
 def get_user_group():
     """
@@ -314,6 +391,46 @@ def get_user_group():
     :return:
     """
     return jsonify({'code': 1, 'msg': 'success', 'data': USER_GROUP})
+
+@app.route('api/account/check_code_login')
+def check_code_login():
+    """
+    验证码免密支付
+    :return:
+    """
+    code = request.values.get('code')
+    account = request.values.get('account')
+    target = ''
+    if re.match(r'^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.[com,cn,net]{1,3}$', account):
+        target = 'email'
+    elif re.match(r"^1[35678]\d{9}$", account):
+        target = 'phonenumber'
+    else:
+        return jsonify({'code': 0, 'msg': 'error'})
+
+    db = Database()
+    user = db.get({target: account, 'code': code}, 'users')
+    if user:
+        data = {
+            'user_id': user['userID'],
+            'head_portrait': user['headportrait'],
+            'group': get_group(user['usergroup']),
+            'nickname': user['nickname'],
+            'level': get_level(user['exp']),
+            'exp': {'value': user['exp'], 'percent': user['exp'] / LEVEL_EXP[get_level(user['exp'])] * 100},
+            'answer': db.count({'userID': user['userID']}, 'answers'),
+            'follow': db.count({'userID': user['userID']}, 'followuser'),
+            'fans': db.count({'target': user['userID']}, 'followuser')
+        }
+        result = db.update({target: account, 'code': code},
+                           {'token': new_token(),
+                            'last_login': time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))},
+                           'users')  # 更新token
+        if result:
+            return jsonify(
+                {'code': 1, 'msg': 'success', 'data': {'token': result['token'], 'data': data}})
+        return jsonify({'code': -1, 'msg': 'unable to update token'})  # 失败返回
+    return jsonify({'code': 0, 'msg': 'unexpected user'})  # 失败返回
 
 
 @app.route('/api/account/login', methods=['POST'])
@@ -387,6 +504,8 @@ def register():
     elif re.match(r"^1[35678]\d{9}$", account):
         check = db.get({'phonenumber': account}, 'users')
         dict_name = "phonenumber"
+    else:
+        return jsonify({'code': -3, 'msg': 'account format error,not email or phonenumber'})
 
     if not check:
         nick_name_list = random.sample('zyxwvutsrqponmlkjihgfedcba1234567890', 10)
@@ -1202,6 +1321,130 @@ def history_pay():
     for value in log:
         value.update({'time': value['time'].strftime("%Y-%m-%d")})
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
+
+
+@app.route('/api/account/weixin_pay_api')
+def weixin_pay_api():
+    appid = 'wxe1e434222057b10e'
+    body = '商品'
+    mch_id = '1517624211'
+    KEY = '11111111111111111111111111111111'
+    nonce_str = randomkeys(32)
+    if 'nonce_str' in request.values.keys():
+        nonce_str = request.values.get('nonce_str')
+
+    notify_url = 'http://www.weixin.qq.com/wxpay/pay.php'
+    out_trade_no = randomkeys(24)
+    spbill_create_ip = '104.224.168.56'
+    trade_type = 'JSAPI'
+
+    user_openid = request.values.get('openid')
+    total_fee = request.values.get('total_fee')
+
+    post_data = {
+        'appid':appid,
+        'body':body,
+        'mch_id':mch_id,
+        'nonce_str':nonce_str,
+        'notify_url':notify_url,
+        'openid':user_openid,
+        'out_trade_no':out_trade_no,
+        'spbill_create_ip':spbill_create_ip, #服务器终端ip
+        'total_fee':total_fee, # 总金额
+        'trade_type':trade_type
+    }
+    sign = MakeSign(post_data,KEY)
+    post_xml = "<xml><appid>"+appid+"</appid>"
+    post_xml += "<body>" + body + "</body>"
+    post_xml += "<mch_id>" + mch_id + "</mch_id>"
+    post_xml += "<nonce_str>" + nonce_str + "</nonce_str>"
+    post_xml += "<notify_url>" + notify_url + "</notify_url>"
+    post_xml += "<openid>" + user_openid + "</openid>"
+    post_xml += "<out_trade_no>" + out_trade_no + "</out_trade_no>"
+    post_xml += "<spbill_create_ip>" + spbill_create_ip + "</spbill_create_ip>"
+    post_xml += "<total_fee>" + total_fee + "</total_fee>"
+    post_xml += "<trade_type>" + trade_type + "</trade_type>"
+    post_xml += "<sign>" + sign + "</sign></xml>"
+
+    url = 'https://api.mch.weixin.qq.com/pay/unifiedorder';
+    req = requests.post("https://api.mch.weixin.qq.com/pay/unifiedorder",
+                        data=post_xml.encode('utf-8'),
+                        headers={'Content-Type': 'text/xml'})
+    msg = req.text.encode('ISO-8859-1').decode('utf-8')
+    xml_dict = xml_to_dict(msg)
+    data = {}
+    if xml_dict['RETURN_CODE'] == 'SUCCESS' and xml_dict['RESULT_CODE'] ==  'SUCCESS':
+        tmp ={}
+
+        tmp['appid'] = appid
+        data['text'] = "正确"
+        tmp['nonceStr'] = nonce_str
+        tmp['package'] = 'prepay_id='+xml_dict['PREPAY_ID']
+        tmp['timeStamp'] = int(time.time())
+        data['state'] = 1
+        data['timeStamp'] = int(time.time())
+        data['nonceStr'] = nonce_str
+        data['signType'] = 'MD5'
+        data['package'] = 'prepay_id=' + xml_dict['PREPAY_ID']
+        data['paySign'] = MakeSign(tmp,KEY)
+        data['out_trade_no'] = out_trade_no
+    else:
+        data['state'] = 0
+        data['text'] = "错误"
+        data['RETURN_CODE'] = xml_dict['RETURN_CODE']
+        data['RETURN_MSG'] = xml_dict['RETURN_MSG']
+
+    return jsonify({'code': data['state'], 'msg': data['text'], 'data':data})
+
+def toUrlParams(param):
+    """
+    将参数拼接为url: key=value&key=value
+    :param param:
+    :return:
+    """
+    string = "";
+    if param:
+        arr = []
+        for key in param.keys():
+            arr.append(key + "=" + str(param[key]))
+        string = '&'.join(arr)
+    return string
+
+
+def randomkeys(num):
+    """
+    生成指定长度的随机数字串
+    :param num:
+    :return:
+    """
+    string = ""
+    for i in range(0,num):
+        string += str(random.randint(0,9))
+    return string
+
+def xml_to_dict(xml_data):
+    """
+    xml转换为字典
+    :param xml_data:
+    :return:
+    """
+    soup = BeautifulSoup(xml_data, features='xml')
+    xml = soup.find('xml')
+    if not xml:
+        return {}
+    # 将 XML 数据转化为 Dict
+    data = dict([(item.name, item.text) for item in xml.find_all()])
+    return data
+
+
+def MakeSign(post,key):
+    string = toUrlParams(post)
+    string = string + "&key=" + str(key)
+    h = hashlib.md5()
+    h.update(bytes(string, encoding='utf-8'))
+    result = h.hexdigest()
+
+    return result
 
 
 def change_account_balance(num, token):
@@ -5778,6 +6021,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
