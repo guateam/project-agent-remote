@@ -67,8 +67,7 @@ def compute_tf(word,content):
                 # 特定词语数增加
                 count_certain += 1
     # 计算tf值
-    if(count_certain > 0):
-        tf = count_all/count_certain
+    tf = count_certain/count_all
 
     return tf
 
