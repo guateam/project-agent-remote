@@ -1481,7 +1481,8 @@ def change_account_balance(num, token):
         # 若num为负数，钱包可能被扣到负值
         if float(user['account_balance']) + float(num) < 0:
             return -1
-        flag = db.update("update users set account_balance=%f where userID=%s" %(float(user['account_balance']) + float(num),user['userID']))
+        flag = db.update("update users set account_balance=%f where userID=%s" % (
+            float(user['account_balance']) + float(num), user['userID']))
 
         if flag:
             return 1
@@ -4519,12 +4520,12 @@ def request_upgrade():
         if specialist_license and allowed_pic(specialist_license.filename):
             basepath = os.path.dirname(__file__)  # 当前文件所在路径
             # 正面的图片
-            filename = str(user['userID']) + '_license' + specialist_license.filename.rsplit('.', 1)[1]
-            upload_path = os.path.join(basepath, 'license', filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
+            filename = str(user['userID']) + '_license.' + specialist_license.filename.rsplit('.', 1)[1]
+            upload_path = os.path.join(basepath, 'static/license', filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
             specialist_license.save(upload_path)
             license_type = request.form['license_type']
             flag = db.update({'userID': user['userID']},
-                             {'usergroup': 5, 'license_type': license_type, 'specialist_license': upload_path}, 'users')
+                             {'usergroup': 5, 'license_type': license_type, 'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to request'})
@@ -4739,12 +4740,13 @@ def request_enterprise_upgrade():
         if specialist_license and allowed_pic(specialist_license.filename):
             basepath = os.path.dirname(__file__)  # 当前文件所在路径
             # 正面的图片
-            filename = str(user['userID']) + '_license' + specialist_license.filename.rsplit('.', 1)[1]
-            upload_path = os.path.join(basepath, 'license', filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
+            filename = str(user['userID']) + '_license.' + specialist_license.filename.rsplit('.', 1)[1]
+            upload_path = os.path.join(basepath, 'static/license', filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
             specialist_license.save(upload_path)
             license_type = request.form['license_type']
             flag = db.update({'userID': user['userID']},
-                             {'usergroup': 6, 'license_type': license_type, 'specialist_license': upload_path}, 'users')
+                             {'usergroup': 6, 'license_type': license_type,
+                              'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to request'})
