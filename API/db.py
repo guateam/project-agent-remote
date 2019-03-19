@@ -91,7 +91,7 @@ class Database(object):
                     if values == self.MYSQL_NULL:
                         list1.append(key + self.MYSQL_NULL)
                     else:
-                        list1.append('`'+key + '`="' + str(values) + '"')
+                        list1.append('`' + key + '`="' + str(values) + '"')
                 where = ' AND '.join(list1)
                 sql_query = 'SELECT * FROM %s WHERE %s' % (table, where)  # 构造sql语句
                 sql_query.replace('\\', '\\\\')
@@ -127,7 +127,11 @@ class Database(object):
                 sql_query = 'UPDATE %s SET %s WHERE %s' % (table, update, where)  # 构造sql语句
                 cursor.execute(sql_query)
                 self.db.commit()
-                where_list.update(data)  # 更新查询选项
+                # where_list.update(data)  # 更新查询选项
+                for value in data.keys():
+                    for item in where_list.keys():
+                        if value == item:
+                            where_list.update({value: data[value]})
                 return self.get(where_list, table)  # 调用get返回更新后的信息
         except pymysql.MySQLError as e:
             print(e.args)

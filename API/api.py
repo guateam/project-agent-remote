@@ -1468,16 +1468,13 @@ def MakeSign(post, key):
 
     return result
 
-@app.route("/api/account/test_change_balance")
-def change_account_balance():
+def change_account_balance(num,token):
     """
     增加或减少余额值
     :param num: 改变量
     :param token: 用户token
     :return: code:-2=用户不存在  -1=余额不足  0=数据库操作失败  1=改变成功
     """
-    num = request.values.get('num')
-    token = request.values.get('token')
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
@@ -6051,6 +6048,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000)
