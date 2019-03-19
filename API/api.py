@@ -1468,7 +1468,8 @@ def MakeSign(post, key):
 
     return result
 
-def change_account_balance(num,token):
+
+def change_account_balance(num, token):
     """
     增加或减少余额值
     :param num: 改变量
@@ -1479,11 +1480,12 @@ def change_account_balance(num,token):
     user = db.get({'token': token}, 'users')
     if user:
         # 若num为负数，钱包可能被扣到负值
-        if int(user['account_balance']) + int(num) < 0:
+        if float(user['account_balance']) + float(num) < 0:
             return -1
 
-        flag = db.update({'userID': user['userID']}, {'account_balance': int(user['account_balance']) + int(num)},
-                         'users')
+        flag = db.update_new({'userID': user['userID']},
+                             {'account_balance': round(float(user['account_balance']) + float(num), 2)},
+                             'users')
         if flag:
             return 1
         return 0
@@ -1646,7 +1648,7 @@ def add_priced_question():
     token = request.form['token']
     price = request.form['price']
     db = Database()
-    res = change_account_balance(-int(price), token)
+    res = change_account_balance(-float(price), token)
     if res == 1:
         user = db.get({'token': token}, 'users')
         if user:
@@ -1659,7 +1661,7 @@ def add_priced_question():
                              'questions')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
-            change_account_balance(-int(price), token)
+            change_account_balance(-float(price), token)
             return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
     elif res == 0:
@@ -1689,7 +1691,7 @@ def adopt_answer():
                     flag = db.get({'userID': answer['userID']}, 'users')
                     if flag:
                         flag1 = db.update({'userID': answer['userID']},
-                                          {'account_balance': int(flag['account_balance']) + int(
+                                          {'account_balance': float(flag['account_balance']) + float(
                                               question['price'])},
                                           'users')
                         flag2 = db.update({'answerID': answer['answerID']}, {'answerType': 2}, 'answers')
@@ -3144,19 +3146,19 @@ def pay_article():
             if article['free'] == 0:
                 pay = db.get({'from': user['userID'], 'receive': article['articleID'], 'type': 4}, 'pay_log')
                 if not pay:
-                    flag = change_account_balance(-int(article['price']), token)
+                    flag = change_account_balance(-float(article['price']), token)
                     if flag == 1:
                         flag = db.insert({'from': user['userID'], 'receive': article['articleID'], 'type': 4,
-                                          'amount': -int(article['price'])},
+                                          'amount': -float(article['price'])},
                                          'pay_log')
                         flag1 = db.insert({'from': article['userID'], 'receive': article['articleID'], 'type': 5,
-                                           'amount': int(article['price'] * 0.8)}, 'pay_log')
+                                           'amount': float(article['price']) * 0.8}, 'pay_log')
                         author = db.get({'userID': article['userID']}, 'users')
                         if author:
-                            change_account_balance(int(article['price'] * 0.8), author['token'])
+                            change_account_balance(float(article['price']) * 0.8, author['token'])
                         if flag and flag1:
                             return jsonify({'code': 1, 'msg': 'success'})
-                        change_account_balance(int(article['price']), token)
+                        change_account_balance(float(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
                     elif flag == -1:
                         return jsonify({'code': -2, 'msg': 'not enough money'})
@@ -4290,7 +4292,7 @@ def tf_idf(word, content, type='question'):
         contain_word_number = db.count({'title': word, 'content': word}, 'article') + 1
 
     # 计算idf值
-    idf = math.log((total_item_number / contain_word_number)+1)
+    idf = math.log((total_item_number / contain_word_number) + 1)
 
     return tf * idf
 
@@ -4390,14 +4392,14 @@ def confirm_order():
         order_id = request.form['order_id']
         answer = request.form['answer']
         order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1, 'answer': answer}, 'orders')
-        flag = change_account_balance(int(order['price']), token)
+        flag = change_account_balance(float(order['price']), token)
         flag1 = db.insert(
-            {'from': user['userID'], 'amount': int(order['price']), 'receive': order['orderID'], 'type': 6},
+            {'from': user['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 6},
             'pay_log')
         if order and flag == 1 and flag1:
             set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被回答！', order['userID'], '付费咨询被回答')
             return jsonify({'code': 1, 'msg': 'success'})
-        change_account_balance(-int(order['price']), token)
+        change_account_balance(-float(order['price']), token)
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
@@ -4436,9 +4438,9 @@ def refuse_order():
         order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': -1}, 'orders')
         if order:
             user1 = db.get({'userID': order['userID']}, 'users')
-            flag = change_account_balance(int(order['price']), user1['token'])
+            flag = change_account_balance(float(order['price']), user1['token'])
             flag1 = db.insert(
-                {'from': user1['userID'], 'amount': int(order['price']), 'receive': order['orderID'], 'type': 7},
+                {'from': user1['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 7},
                 'pay_log')
             if order and flag == 1 and flag1:
                 set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'], '付费咨询被拒绝')
@@ -4496,9 +4498,9 @@ def add_order():
         content = request.form['content']
         flag = db.insert({'userID': user['userID'], 'target': target, 'price': price,
                           'content': content}, 'orders')
-        flag1 = change_account_balance(-int(price), token)
+        flag1 = change_account_balance(-float(price), token)
         flag2 = db.insert(
-            {'from': user['userID'], 'amount': -int(price), 'receive': target, 'type': 2},
+            {'from': user['userID'], 'amount': -float(price), 'receive': target, 'type': 2},
             'pay_log')
         if flag and flag1 == 1 and flag2:
             set_sys_message(user['userID'], 3, '您有一份来自' + user['nickname'] + '咨询待回答！', target, '新付费咨询')
@@ -4527,7 +4529,8 @@ def request_upgrade():
             specialist_license.save(upload_path)
             license_type = request.form['license_type']
             flag = db.update({'userID': user['userID']},
-                             {'usergroup': 5, 'license_type': license_type, 'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
+                             {'usergroup': 5, 'license_type': license_type,
+                              'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to request'})
