@@ -558,8 +558,11 @@ def set_account_info():
         nickname = request.form['nickname']
         description = request.form['description']
         headportrait = request.form['headportrait']
-        email = request.form['email']
-        phonenumber = request.form['phonenumber']
+        if 'email' in request.form.keys():
+            email = request.form['email']
+        if 'phonenumber' in request.form.keys():
+            phonenumber = request.form['phonenumber']
+
         flag = db.update({'token': token},
                          {'nickname': nickname, 'description': description,
                           'headportrait': headportrait, 'phonenumber': phonenumber,
