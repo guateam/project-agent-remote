@@ -1468,7 +1468,8 @@ def MakeSign(post, key):
 
     return result
 
-def change_account_balance(num,token):
+
+def change_account_balance(num, token):
     """
     增加或减少余额值
     :param num: 改变量
@@ -1482,8 +1483,9 @@ def change_account_balance(num,token):
         if float(user['account_balance']) + float(num) < 0:
             return -1
 
-        flag = db.update({'userID': user['userID']}, {'account_balance': round(float(user['account_balance']) + float(num),2)},
-                         'users')
+        flag = db.update_new({'userID': user['userID']},
+                             {'account_balance': round(float(user['account_balance']) + float(num), 2)},
+                             'users')
         if flag:
             return 1
         return 0
@@ -4290,7 +4292,7 @@ def tf_idf(word, content, type='question'):
         contain_word_number = db.count({'title': word, 'content': word}, 'article') + 1
 
     # 计算idf值
-    idf = math.log((total_item_number / contain_word_number)+1)
+    idf = math.log((total_item_number / contain_word_number) + 1)
 
     return tf * idf
 
@@ -4527,7 +4529,8 @@ def request_upgrade():
             specialist_license.save(upload_path)
             license_type = request.form['license_type']
             flag = db.update({'userID': user['userID']},
-                             {'usergroup': 5, 'license_type': license_type, 'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
+                             {'usergroup': 5, 'license_type': license_type,
+                              'specialist_license': 'https://hanerx.tk:5000/static/license/' + filename}, 'users')
             if flag:
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to request'})

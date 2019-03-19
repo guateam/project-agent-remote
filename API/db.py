@@ -127,6 +127,33 @@ class Database(object):
                 sql_query = 'UPDATE %s SET %s WHERE %s' % (table, update, where)  # 构造sql语句
                 cursor.execute(sql_query)
                 self.db.commit()
+                where_list.update(data)  # 更新查询选
+                return self.get(where_list, table)  # 调用get返回更新后的信息
+        except pymysql.MySQLError as e:
+            print(e.args)
+            return []
+
+    def update_new(self, where_list, data, table):
+        """
+        更新数据库数据
+        :param where_list: dist 需要更新的数据库所在
+        :param data: dist 需要更新的内容
+        :param table: 目标表名
+        :return: dist 更新后的表单 单个dist
+        """
+        try:
+            with self.db.cursor() as cursor:
+                list1 = []
+                for key, values in where_list.items():
+                    list1.append(str(key) + ' = "' + str(values) + '"')
+                list2 = []
+                for key, values in data.items():
+                    list2.append(key + ' = "' + str(values) + '"')
+                where = ' AND '.join(list1)
+                update = ' , '.join(list2)
+                sql_query = 'UPDATE %s SET %s WHERE %s' % (table, update, where)  # 构造sql语句
+                cursor.execute(sql_query)
+                self.db.commit()
                 # where_list.update(data)  # 更新查询选项
                 for value in data.keys():
                     for item in where_list.keys():
