@@ -11,6 +11,7 @@ import smtplib
 import requests
 import lxml
 import hashlib
+import math
 
 from bs4 import BeautifulSoup
 from CF.cf import item_cf, set_similarity_vec, user_cf
@@ -1467,23 +1468,25 @@ def MakeSign(post, key):
 
     return result
 
-
-def change_account_balance(num, token):
+@app.route("/api/account/test_change_balance")
+def change_account_balance():
     """
     增加或减少余额值
     :param num: 改变量
     :param token: 用户token
     :return: code:-2=用户不存在  -1=余额不足  0=数据库操作失败  1=改变成功
     """
+    num = request.values.get('num')
+    token = request.values.get('token')
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
         # 若num为负数，钱包可能被扣到负值
         if float(user['account_balance']) + float(num) < 0:
             return -1
-        flag = db.update("update users set account_balance=%f where userID=%s" % (
-            float(user['account_balance']) + float(num), user['userID']))
 
+        flag = db.update({'userID': user['userID']}, {'account_balance': round(float(user['account_balance']) + float(num),2)},
+                         'users')
         if flag:
             return 1
         return 0
@@ -4275,6 +4278,8 @@ def tf_idf(word, content, type='question'):
     db = Database()
     # 计算tf值
     tf = compute_tf(word, content)
+    total_item_number = 0
+    contain_word_number = 0
     # 获取总问题数量或文章数量
     if type == 'question':
         total_item_number = db.count({}, 'questions')
@@ -4288,7 +4293,7 @@ def tf_idf(word, content, type='question'):
         contain_word_number = db.count({'title': word, 'content': word}, 'article') + 1
 
     # 计算idf值
-    idf = total_item_number / contain_word_number
+    idf = math.log((total_item_number / contain_word_number)+1)
 
     return tf * idf
 
@@ -6046,6 +6051,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
