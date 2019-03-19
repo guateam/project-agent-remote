@@ -6048,6 +6048,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    app.run(host='0.0.0.0', port=5000)
+    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    # app.run(host='0.0.0.0', port=5000)
