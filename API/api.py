@@ -4373,13 +4373,15 @@ def get_order_list():
     user = db.get({'token': token}, 'users')
     if user:
         order = db.get({'target': user['userID']}, 'orderinfo', 0)
+        order = sorted(order, key=lambda x: x['time'], reverse=True)
         for value in order:
-            value.update({'level': get_level(value['exp']), 'usergroup': get_group(value['usergroup'])})
+            value.update({'level': get_level(value['exp']), 'usergroup': get_group(value['usergroup']),
+                          'time': value['time'].strftime('%Y-%m-%d %H:%M:%S')})
         return jsonify({'code': 1, 'msg': 'success', 'data': order})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
-@app.route('/api/specialist/confirm_order')
+@app.route('/api/specialist/confirm_order', methods=['POST'])
 def confirm_order():
     """
     确认付费咨询预约
@@ -4391,7 +4393,7 @@ def confirm_order():
     if user:
         order_id = request.form['order_id']
         answer = request.form['answer']
-        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': 1, 'answer': answer}, 'orders')
+        order = db.update_new({'orderID': order_id, 'target': user['userID']}, {'state': 1, 'answer': answer}, 'orders')
         flag = change_account_balance(float(order['price']), token)
         flag1 = db.insert(
             {'from': user['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 6},
@@ -4416,11 +4418,15 @@ def get_order():
     if user:
         order_id = request.values.get('order_id')
         order = db.get({'orderID': order_id}, 'orders_info')
+        pattern = re.compile(r'<[Ii][Mm][Gg].+?/?>')
         if order and (order['userID'] == user['userID'] or order['target'] == user['userID']):
             order.update(
                 {'user_user_group': get_group(order['user_user_group']), 'user_level': get_level(order['user_exp']),
                  'specialist_user_group': get_group(order['specialist_user_group']),
-                 'specialist_level': get_level(order['specialist_exp'])})
+                 'specialist_level': get_level(order['specialist_exp']),
+                 'image': pattern.findall(order['content']),
+                 'time': order['time'].strftime('%Y-%m-%d %H:%M:%S')
+                 })
             return jsonify({'code': 1, 'msg': 'success', 'data': order})
 
 
@@ -4435,7 +4441,7 @@ def refuse_order():
     user = db.get({'token': token}, 'users')
     if user:
         order_id = request.values.get('order_id')
-        order = db.update({'order_id': order_id, 'target': user['userID']}, {'state': -1}, 'orders')
+        order = db.update({'orderID': order_id, 'target': user['userID']}, {'state': -1}, 'orders')
         if order:
             user1 = db.get({'userID': order['userID']}, 'users')
             flag = change_account_balance(float(order['price']), user1['token'])
@@ -4444,6 +4450,7 @@ def refuse_order():
                 'pay_log')
             if order and flag == 1 and flag1:
                 set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'], '付费咨询被拒绝')
+                return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
