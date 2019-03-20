@@ -1284,7 +1284,12 @@ def get_account_balance():
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-        return jsonify({'code': 1, 'msg': 'success', 'data': user['account_balance']})
+        account_balance = db.sql("select sum(amount) as balance from pay_log where `from`='%s'" % (user['userID']))
+        if account_balance:
+            account_balance = account_balance[0]['balance']
+        else:
+            account_balance = 0
+        return jsonify({'code': 1, 'msg': 'success', 'data': account_balance})
     return jsonify({'code': 0, 'msg': 'the user is not exist'})
 
 
