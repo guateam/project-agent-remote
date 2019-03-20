@@ -3397,20 +3397,35 @@ def classify_all_tag():
     result = []
     db = Database()
 
+    IDname = ""
+    commentname = ""
+    follow_type_number = 0
+
     category = db.sql("select * from tags where type=1")
     for cate in category:
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
+            IDname = "questionID"
+            commentname="questioncomments"
+            follow_type_number = 12
         elif type == 2:
-            target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
+            IDname = "articleID"
+            commentname="article_comments"
+            follow_type_number = 22
 
         for value in target:
-            value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
+            value.update({
+                'tags': get_tags(value['tags']),
+                'edittime': value['edittime'].strftime('%Y/%m/%d'),
+                'follow': db.count({'targettype': follow_type_number, 'targetID': value[IDname]}, 'useraction'),
+                'comment': db.count({IDname: value[IDname]}, commentname),
+            })
 
         result.append(target)
 
@@ -6061,6 +6076,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
