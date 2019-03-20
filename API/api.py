@@ -3353,30 +3353,36 @@ def classify_by_tag():
 
     db = Database()
 
-    # if type == 1:
-    #     target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
-    # elif type == 2:
-    #     target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
-    #
-    # result = flow_loading(target, each, page)
+    IDname = ""
+    commentname = ""
+    follow_type_number = 0
+
     begin = (page - 1) * each + 1
     end = page * each
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
+        IDname = "questionID"
+        commentname = "questioncomments"
+        follow_type_number = 12
+
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
-
-    # result = flow_loading(target, each, page)
+        IDname = "articleID"
+        commentname = "article_comments"
+        follow_type_number = 22
 
     for value in target:
-        value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
+        value.update({
+            'tags': get_tags(value['tags']),
+            'edittime': value['edittime'].strftime('%Y/%m/%d'),
+            'follow': db.count({'targettype': follow_type_number, 'targetID': value[IDname]}, 'useraction'),
+            'comment': db.count({IDname: value[IDname]}, commentname),
+        })
 
     return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
