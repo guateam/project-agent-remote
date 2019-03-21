@@ -1830,6 +1830,34 @@ def follow_question():
         return jsonify({'code': 0, 'msg': "there are something wrong when inserted the data into database"})
 
 
+@app.route('/api/questions/un_follow_question')
+def un_follow_question():
+    """
+    取消关注某个问题
+    :return: code:-1 = 问题不存在, -2 = 用户不存在, 0 = 关注失败, 1 = 关注成功
+    """
+    token = request.values.get('token')
+    question_id = request.values.get('question_id')
+
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    question = db.get({'questionID': question_id}, 'questions')
+
+    if not question:
+        return jsonify({'code': -1, 'msg': "the question is not exist"})
+    if not user:
+        return jsonify({'code': -2, 'msg': "the user is not exist"})
+
+    user_id = user['userID']
+    success = db.delete({'userID': user_id, 'target': question_id}, 'followtopic')
+    db.delete({'userID': user_id, 'targetID': question_id, 'targettype': 12}, 'useraction')
+    if success:
+        set_exp(question['questionID'], 2, '话题被收藏')
+        return jsonify({'code': 1, 'msg': "follow success"})
+    else:
+        return jsonify({'code': 0, 'msg': "there are something wrong when inserted the data into database"})
+
+
 @app.route('/api/questions/get_answer_list')
 def get_answer_list():
     """
