@@ -4169,12 +4169,11 @@ def upload_identity_card_back():
             basepath = os.path.dirname(__file__)  # 当前文件所在路径
             # 反面的图片
             back_filename = str(user['userID']) + '_back.' + back.filename.rsplit('.', 1)[1]
-            upload_path_reverse = os.path.join(basepath, 'static/identity_card',
-                                               back_filename)  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
+            upload_path_reverse = basepath+'/static/identity_card/'+back_filename  # 注意：没有的文件夹一定要先创建，不然会提示没有该路径
             back.save(upload_path_reverse)
 
             # 调用ocr进行反面识别文字信息(反面是有个人信息的那一面)
-            info_reverse = identify(upload_path_reverse)
+            info_reverse = identify(upload_path_reverse,show_process=True)
 
             flag = db.update({'userID': user['userID']}, {
                 'back_pic': '/static/identity_card/' + back_filename},

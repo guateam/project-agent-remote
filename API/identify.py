@@ -16,6 +16,16 @@ def identify(pic_path, show_process=False, print_info=False):
     :return: 识别出的信息dict
     """
     try:
+        pic_path.replace('\\\\', '/')
+        path_info = pic_path.split('/')
+        path_without_filename = ""
+        for i in range(len(path_info)-1):
+            path_without_filename += path_info[i] + "/"
+        path_without_filename += "after/"
+        file_name = path_info[-1]
+
+        result = resize(pic_path,  path_without_filename,show_process=False)
+        pic_path = path_without_filename + file_name
         img = cv2.imread(pic_path)[..., :: -1]  # bgr2rgb
         img = cv2.fastNlMeansDenoisingColored(img, None, 10, 10, 7, 21)  # 图像去噪
         k = np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]])  # 构造滤波器
@@ -118,7 +128,8 @@ def resize(pic_path, save_path, show_process=False):
         contours, hierarchy = cv2.findContours(thresh.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  # 查找轮廓
         contours = sorted(contours, key=cv2.contourArea, reverse=True)  # 按面积排序
         if cv2.contourArea(contours[0]) < 5000000:
-            cv2.imwrite(os.path.join(save_path, pic_path.split('/')[-1]), img)
+            dir = os.path.join(save_path, pic_path.split('/')[-1])
+            cv2.imwrite(dir, img)
         fill = cv2.rectangle(thresh.copy(), (0, 0), (img.shape[1], img.shape[0]), (0, 0, 0), -1)  # 将图片涂黑
         fill = cv2.drawContours(fill.copy(), contours, 0, (255, 255, 255), -1)  # 将最大轮廓涂白
         edges = cv2.Canny(fill.copy(), 50, 150, apertureSize=3)  # Canny算子边缘检测
@@ -209,6 +220,8 @@ def resize(pic_path, save_path, show_process=False):
         print('图像矫正模块遇到未知错误: ', e.args)
 
 
+
+
 if __name__ == '__main__':
     img_dir = 'images'
     save_dir = 'dst'
@@ -218,6 +231,6 @@ if __name__ == '__main__':
             print('=' * 20 + os.path.join(img_dir, file).center(30) + '=' * 20)
             tic = time.time()
             resize(os.path.join(img_dir, file), save_dir, show_process=False)
-            _ = identify(os.path.join(save_dir, file), show_process=False, print_info=True)
+            _ = identify(os.path.join(save_dir, file), show_process=True, print_info=True)
             toc = time.time()
             print('=' * 20 + 'Time: {}s'.format(toc - tic).center(30) + '=' * 20)
