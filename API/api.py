@@ -2705,9 +2705,10 @@ def un_disagree_answer():
             plus = 1
             if get_level(user['exp']) >= 5:
                 plus = 2
-            if int(answer['disagree']) - plus > 0:
-                result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - plus}, 'answers')
-
+            num = int(answer['disagree']) - plus
+            if num < 0:
+                num = 0
+            result = db.update({'answerID': answer_id}, {'disagree': num}, 'answers')
             flag = db.delete({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
             if result and flag:
                 return jsonify({'code': 1, 'msg': 'success'})
