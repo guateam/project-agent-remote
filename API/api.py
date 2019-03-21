@@ -55,6 +55,17 @@ QUESTION_RATE_NAME = "question_rate_rect.txt"
 QUESTION_ID_NAME = "question_id_list.txt"
 QUESTION_SIMILAR_NAME = "question_similar_rect.txt"
 
+PAY_DICT = [
+    "付费回答",
+    "专家咨询",
+    "告示板需求",
+    "文章付费",
+    "文章收入",
+    "专家咨询收入",
+    "专家拒绝回答退款",
+    "充值",
+    "提现"
+]
 
 # @app.before_request
 # def before_request():
@@ -559,15 +570,10 @@ def set_account_info():
         nickname = request.form['nickname']
         description = request.form['description']
         headportrait = request.form['headportrait']
-        if 'email' in request.form.keys():
-            email = request.form['email']
-        if 'phonenumber' in request.form.keys():
-            phonenumber = request.form['phonenumber']
 
         flag = db.update({'token': token},
                          {'nickname': nickname, 'description': description,
-                          'headportrait': headportrait, 'phonenumber': phonenumber,
-                          'email': email}, 'users')
+                          'headportrait': headportrait}, 'users')
         if flag:
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to update'})
@@ -1374,7 +1380,10 @@ def history_pay():
 
     log = db.get({'from': user['userID']}, 'pay_log', 0)
     for value in log:
-        value.update({'time': value['time'].strftime("%Y-%m-%d")})
+        value.update({
+            'time': value['time'].strftime("%Y-%m-%d"),
+            'type_name': PAY_DICT[int(value['type']) - 1]
+        })
     return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 
