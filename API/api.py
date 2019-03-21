@@ -1,3 +1,4 @@
+import json
 import os
 import random
 import re
@@ -3622,6 +3623,42 @@ def get_message_list():
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
+@app.route('/api/message/get_back_message_list')
+def get_back_message_list():
+    """
+    获取聊天列表
+    :return: code(0=未知用户，-1=空聊天列表，1=成功)
+    """
+    token = request.headers.get('X-Token')
+    db = Database()
+    user = db.get({'token': token, 'usergroup': 0}, 'users')
+    if user:
+        receive = db.get({'receiver': 0}, 'chat_box', 0)
+        post = db.get({'poster': 0}, 'chat_box', 0)
+        data = []
+        for value in receive + post:
+            data.append({
+                'user_id': value['receiver'] if value['poster'] == 0 else value['poster'],
+                'nickname': value['receiver_nickname'] if value['poster'] == 0 else value[
+                    'poster_nickname'],
+                'headportrait': value['receiver_headportrait'] if value['poster'] == 0 else value[
+                    'poster_headportrait'],
+                'post_time': get_formative_datetime(value['post_time']),
+                'content': value['content']
+            })
+        sorted(data, key=lambda a: a['post_time'], reverse=True)
+        back = []
+        for value in data:
+            flag = True
+            for value1 in back:
+                if value1['user_id'] == value['user_id']:
+                    flag = False
+            if flag:
+                back.append(value)
+        return jsonify({'code': 1, 'msg': 'success', 'data': back})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
 @app.route('/api/message/add_message', methods=['POST'])
 def add_message():
     """
@@ -3668,6 +3705,55 @@ def get_chat_box():
             data = []
         data = sorted(data, key=lambda a: a['post_time'])
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/message/get_back_chat_box')
+def get_back_chat_box():
+    """
+    获取聊天室内容
+    :return:code(0=未知用户，1=成功)
+    """
+    token = request.headers.get('X-Token')
+    user_id = request.values.get('user_id')
+    db = Database()
+    user = db.get({'token': token, 'usergroup': 0}, 'users')
+    if user:
+        message1 = db.get({'poster': 0, 'receiver': user_id}, 'messages', 0)
+        message2 = db.get({'receiver': 0, 'poster': user_id}, 'messages', 0)
+        if message2 and message1:
+            data = message1 + message2
+        elif message1:
+            data = message1
+        elif message2:
+            data = message2
+        else:
+            data = []
+        data = sorted(data, key=lambda a: a['post_time'])
+        return jsonify({'code': 1, 'msg': 'success', 'data': data})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+@app.route('/api/message/back_add_message', methods=['POST'])
+def back_add_message():
+    """
+    后台客服回复
+    :return:
+    """
+    token = request.headers.get('X-Token')
+    receiver = request.form['receiver']
+    content = request.form['content']
+    message_type = request.form['message_type']
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    if user:
+        flag = db.insert(
+            {'receiver': receiver, 'content': content,
+             'type': message_type, 'poster': 0},
+            'messages')
+        if flag:
+            return jsonify({'code': 1, 'msg': 'success'})
+        return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
@@ -6141,6 +6227,22 @@ def back_add_child_tag():
             return jsonify({'code': 1, 'msg': 'success', 'data': tag_id})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+"""
+    其他
+"""
+
+
+@app.route('/api/other/check_update')
+def check_update():
+    """
+    检查更新
+    :return:
+    """
+    with open('/etc/project-agent/API/version.json', 'r', encoding='utf-8') as file:
+        version = json.load(file)
+        return jsonify(version)
 
 
 if __name__ == '__main__':
