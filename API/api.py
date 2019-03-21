@@ -17,7 +17,7 @@ import math
 from bs4 import BeautifulSoup
 from CF.cf import item_cf, set_similarity_vec, user_cf
 from vague_search.vague_search import select_by_similarity, compute_tf
-from API.OCR import ocr
+from API.identify import identify
 from flask import Flask, jsonify, request, redirect
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -2705,7 +2705,9 @@ def un_disagree_answer():
             plus = 1
             if get_level(user['exp']) >= 5:
                 plus = 2
-            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - plus}, 'answers')
+            if int(answer['disagree']) - plus > 0:
+                result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - plus}, 'answers')
+
             flag = db.delete({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
             if result and flag:
                 return jsonify({'code': 1, 'msg': 'success'})
@@ -4171,7 +4173,7 @@ def upload_identity_card_back():
             back.save(upload_path_reverse)
 
             # 调用ocr进行反面识别文字信息(反面是有个人信息的那一面)
-            info_reverse = ocr(upload_path_reverse)
+            info_reverse = identify(upload_path_reverse)
 
             flag = db.update({'userID': user['userID']}, {
                 'back_pic': '/static/identity_card/' + back_filename},
