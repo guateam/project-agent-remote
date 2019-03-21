@@ -952,12 +952,28 @@ def set_exp_change():
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-        flag = db.update({'token': token}, {'exp': user['exp'] + value}, 'users')
+        flag = db.update({'token': token}, {'exp': int(user['exp']) + int(value)}, 'users')
         flag2 = db.insert({'value': value, 'userID': user['userID'], 'description': description}, 'exp_change')
         if flag and flag2:
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
+
+
+def set_exp(user_id, value, description):
+    """
+    内置的积分修改方法
+    :return:
+    """
+    db = Database()
+    user = db.get({'userID': user_id}, 'users')
+    if user:
+        flag = db.update({'userID': user_id}, {'exp': int(user['exp']) + int(value)}, 'users')
+        flag2 = db.insert({'value': value, 'userID': user['userID'], 'description': description}, 'exp_change')
+        if flag and flag2:
+            return 1
+        return -1
+    return 0
 
 
 @app.route('/api/account/back_get_users')
@@ -1634,6 +1650,7 @@ def add_question():
         flag = db.insert({'title': title, 'description': description, 'userID': user['userID'], 'tags': tags},
                          'questions')
         if flag:
+            set_exp(user['userID'], 3, '发布话题')
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to insert question'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
@@ -1660,6 +1677,7 @@ def add_priced_question():
                               'allowed_user': allowed_user, 'question_type': 1},
                              'questions')
             if flag:
+                set_exp(user['userID'], 4, '发布付费话题')
                 return jsonify({'code': 1, 'msg': 'success'})
             change_account_balance(-float(price), token)
             return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
@@ -1690,11 +1708,11 @@ def adopt_answer():
                 if question['userID'] == user['userID']:
                     flag = db.get({'userID': answer['userID']}, 'users')
                     if flag:
-                        flag1 = db.update({'userID': answer['userID']},
-                                          {'account_balance': float(flag['account_balance']) + float(
-                                              question['price'])},
-                                          'users')
-                        flag2 = db.update({'answerID': answer['answerID']}, {'answerType': 2}, 'answers')
+                        flag1 = db.update_new({'userID': answer['userID']},
+                                              {'account_balance': float(flag['account_balance']) + float(
+                                                  question['price'])},
+                                              'users')
+                        flag2 = db.update({'answerID': answer['answerID']}, {'answertype': 2}, 'answers')
                         if flag1 and flag2:
                             return jsonify({'code': 1, 'msg': 'success'})
                         return jsonify({'code': -1, 'msg': 'unable to update'})
@@ -1739,6 +1757,8 @@ def get_question():
                 'question_type': question['question_type'],
                 'follow': db.count({'target': question_id}, 'followtopic'),
                 'comment': db.count({'questionID': question_id}, 'questioncomments'),
+                'price': question['price'],
+                'answer': db.count({'questionID': question_id}, 'answers')
             }
             return jsonify({'code': 1, 'msg': 'success', 'data': data})
         return jsonify({'code': -1, 'msg': 'unknown user'})
@@ -1785,6 +1805,7 @@ def follow_question():
     success = db.insert({'userID': user_id, 'target': question_id}, 'followtopic')
     set_user_action(user_id, question_id, 12)
     if success:
+        set_exp(question['questionID'], 2, '话题被收藏')
         return jsonify({'code': 1, 'msg': "follow success"})
     else:
         return jsonify({'code': 0, 'msg': "there are something wrong when inserted the data into database"})
@@ -1838,7 +1859,11 @@ def get_priced_answer_list():
 
     # 已支付的或者提问者本人可以直接查看问题下的答案
     if payer or is_author:
-        answers = db.get({'questionID': question_id}, 'answers')
+        answers = db.get({'questionID': question_id}, 'answersinfo', 0)
+        for answer in answers:
+            answer['edittime'] = get_formative_datetime(answer['edittime'])
+            pattern = re.compile(r'<[Ii][Mm][Gg].+?/?>')
+            answer.update({'image': pattern.findall(answer['content'])})
         return jsonify({'code': 1, 'msg': 'success', 'data': answers})
     # 未支付用户则无权限获取答案
     return jsonify({'code': 0, 'msg': 'the user have not paid this question'})
@@ -1876,7 +1901,7 @@ def pay_question():
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
 
     # 试图扣钱,将价格取负数
-    result = change_account_balance(-question['price'], user_token)
+    result = change_account_balance(-question['price'] * 0.05, user_token)
     # 余额不足，提示
     if result == -1:
         return jsonify({'code': -1, 'msg': 'account balance not enough'})
@@ -1885,8 +1910,9 @@ def pay_question():
         return jsonify({'code': 0, 'msg': 'there are something wrong when paying'})
     # 支付成功，生成支付记录
     elif result == 1:
-        res = db.insert({'from': user['userID'], 'receive': question_id, 'amount': question['price'], 'type': 1},
-                        'pay_history')
+        res = db.insert(
+            {'from': user['userID'], 'receive': question_id, 'amount': -question['price'] * 0.05, 'type': 1},
+            'pay_log')
         if not res:
             # 若创建支付记录失败，视为支付失败，将钱退还
             return_money = change_account_balance(question['price'], user_token)
@@ -1896,6 +1922,7 @@ def pay_question():
             # 退还成功，提示支付记录创建失败，未能完成支付
             return jsonify({'code': -4, 'msg': 'paying fail,there are something wrong when create the pay_log'})
         # 支付成功
+        set_exp(user['userID'], 4, '阅读付费话题')
         return jsonify({'code': 1, 'msg': 'success'})
 
 
@@ -1916,6 +1943,7 @@ def add_question_comment():
             flag = db.insert({'userID': user['userID'], 'content': content, 'questionID': question_id},
                              'questioncomments')
             if flag:
+                set_exp(user['userID'], 2, '评论话题')
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to insert comment'})
         return jsonify({'code': -1, 'msg': 'unable to find question'})
@@ -2079,6 +2107,7 @@ def add_answer():
                 {'content': content, 'userID': user['userID'], 'questionID': question_id, 'answertype': answer_type},
                 'answers')
             if flag:
+                set_exp(user['userID'], 5, '发布回答')
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to insert answer'})
         return jsonify({'code': -1, 'msg': 'unknown question'})
@@ -2107,6 +2136,7 @@ def add_priced_answer():
                      'answertype': answer_type},
                     'answers')
                 if flag:
+                    set_exp(user['userID'], 7, '发布付费回答')
                     return jsonify({'code': 1, 'msg': 'success'})
                 return jsonify({'code': -2, 'msg': 'unable to insert answer'})
             return jsonify({'code': -3, 'msg': 'you are not allowed to answer'})
@@ -2218,6 +2248,7 @@ def collect_answer():
     success = db.insert({'userID': user_id, 'answerID': answer_id}, 'collectanswer')
     set_user_action(user_id, answer_id, 50)
     if success:
+        set_exp(answer['userID'], 2, '回答被收藏')
         return jsonify({'code': 1, 'msg': "collect success"})
     else:
         return jsonify({'code': 0, 'msg': "there are something wrong when inserted the data into database"})
@@ -2316,6 +2347,7 @@ def add_answer_comment():
         if answer:
             flag = db.insert({'userID': user['userID'], 'content': content, 'answerID': answer_id}, 'answercomments')
             if flag:
+                set_exp(user['userID'], 2, '添加回答评论')
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to insert comment'})
         return jsonify({'code': -1, 'msg': 'unable to find answer'})
@@ -2338,6 +2370,7 @@ def agree_answer():
             result = db.update({'answerID': answer_id}, {'agree': int(answer['agree']) + 1}, 'answers')
             flag = db.insert({'userID': user['userID'], 'targetID': answer_id, 'targettype': 1}, 'useraction')
             if result and flag:
+                set_exp(answer['userID'], 1, '回答被点赞')
                 return jsonify({'code': 1, 'msg': 'success'})
             if result:
                 return jsonify({'code': -2, 'msg': 'unable to insert user action'})
@@ -2455,7 +2488,7 @@ def agree_complain_comment():
     :return:
     """
     # 获取管理员token和评论ID
-    token = request.values.get('token')
+    token = request.headers.get('X-Token')
     id = request.values.get('id')
 
     db = Database()
@@ -2569,7 +2602,10 @@ def disagree_answer():
     if user:
         answer = db.get({'answerID': answer_id}, 'answers')
         if answer:
-            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) + 1}, 'answers')
+            plus = 1
+            if get_level(user['exp']) >= 5:
+                plus = 2
+            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) + plus}, 'answers')
             flag = db.insert({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
             if result and flag:
                 return jsonify({'code': 1, 'msg': 'success'})
@@ -2594,7 +2630,10 @@ def un_disagree_answer():
     if user:
         answer = db.get({'answerID': answer_id}, 'answers')
         if answer:
-            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - 1}, 'answers')
+            plus = 1
+            if get_level(user['exp']) >= 5:
+                plus = 2
+            result = db.update({'answerID': answer_id}, {'disagree': int(answer['disagree']) - plus}, 'answers')
             flag = db.delete({'userID': user['userID'], 'targetID': answer_id, 'targettype': 2}, 'useraction')
             if result and flag:
                 return jsonify({'code': 1, 'msg': 'success'})
@@ -2753,6 +2792,7 @@ def add_article():
              'cover': cover, 'description': description},
             'article')
         if flag:
+            set_exp(user['userID'], 10, '发布文章')
             return jsonify({'code': 1, 'msg': 'add success'})
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
     return jsonify({'code': -1, 'msg': 'the user is not exist'})
@@ -2810,6 +2850,7 @@ def collect_article():
     user_id = user['userID']
     success = db.insert({'userID': user_id, 'articleID': article_id}, 'collectarticle')
     if success:
+        set_exp(article['userID'], 2, '文章被收藏')
         return jsonify({'code': 1, 'msg': 'collect success'})
     else:
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
@@ -3125,6 +3166,7 @@ def add_article_comment():
         flag = db.insert({'articleID': article_id, 'content': content, 'userID': user['userID']}, 'article_comments')
         set_user_action(user['userID'], article_id, 25)
         if flag:
+            set_exp(user['userID'], 2, '发布文章评论')
             return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
@@ -3157,6 +3199,7 @@ def pay_article():
                         if author:
                             change_account_balance(float(article['price']) * 0.8, author['token'])
                         if flag and flag1:
+                            set_exp(user['userID'], 4, '阅读付费文章')
                             return jsonify({'code': 1, 'msg': 'success'})
                         change_account_balance(float(article['price']), token)
                         return jsonify({'code': -1, 'msg': 'unable to pay'})
@@ -3373,7 +3416,9 @@ def classify_by_tag():
     # result = flow_loading(target, each, page)
 
     for value in target:
-        value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
+        value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d'),
+                      'follow': db.count({'targettype': 12, 'targetID': value['questionID']}, 'useraction'),
+                      'comment': db.count({'questionID': value['questionID']}, 'questioncomments'), })
 
     return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
@@ -3407,7 +3452,9 @@ def classify_all_tag():
                             % (1, 6))
 
         for value in target:
-            value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d')})
+            value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d'),
+                          'follow': db.count({'targettype': 12, 'targetID': value['questionID']}, 'useraction'),
+                          'comment': db.count({'questionID': value['questionID']}, 'questioncomments'), })
 
         result.append(target)
 
@@ -4399,7 +4446,8 @@ def confirm_order():
             {'from': user['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 6},
             'pay_log')
         if order and flag == 1 and flag1:
-            set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被回答！', order['userID'], '付费咨询被回答')
+            set_sys_message(order['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被回答！', order['userID'], '付费咨询被回答')
+            set_exp(user['userID'], 4, '回答付费咨询')
             return jsonify({'code': 1, 'msg': 'success'})
         change_account_balance(-float(order['price']), token)
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
@@ -4449,7 +4497,8 @@ def refuse_order():
                 {'from': user1['userID'], 'amount': float(order['price']), 'receive': order['orderID'], 'type': 7},
                 'pay_log')
             if order and flag == 1 and flag1:
-                set_sys_message(user['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'], '付费咨询被拒绝')
+                set_sys_message(order['userID'], 3, '您向' + user['nickname'] + '提出的付费咨询已被拒绝！', order['userID'],
+                                '付费咨询被拒绝')
                 return jsonify({'code': 1, 'msg': 'success'})
         return jsonify({'code': -1, 'msg': 'unable to find order or user is not correct'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
@@ -4510,7 +4559,8 @@ def add_order():
             {'from': user['userID'], 'amount': -float(price), 'receive': target, 'type': 2},
             'pay_log')
         if flag and flag1 == 1 and flag2:
-            set_sys_message(user['userID'], 3, '您有一份来自' + user['nickname'] + '咨询待回答！', target, '新付费咨询')
+            set_sys_message(target, 3, '您有一份来自' + user['nickname'] + '咨询待回答！', target, '新付费咨询')
+            set_exp(user['userID'], 4, '发布付费咨询')
             return jsonify({'code': 1, 'msg': 'success'})
         if flag1 == -1:
             return jsonify({'code': -2, 'msg': 'you do not have enough money'})
@@ -4598,6 +4648,7 @@ def add_demand():
                  'title': title, 'cover': cover, 'group': group[len(group) - 1]['groupID'],
                  'tags': tags}, 'demands')
             if flag:
+                set_exp(user['userID'], 12, '发布需求')
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -2, 'msg': 'unable to create group'})
         return jsonify({'code': -1, 'msg': 'unable to insert'})
@@ -4788,6 +4839,7 @@ def sign_to_demand():
         if str(user['usergroup']) in demand['allowedUserGroup'].split(','):
             flag = db.insert({'userID': user['userID'], 'target': demand_id}, 'sign_demand')
             if flag:
+                set_exp(user['userID'], 3, '报名参加需求')
                 return jsonify({'code': 1, 'msg': 'success'})
             return jsonify({'code': -1, 'msg': 'unable to sign'})
         return jsonify({'code': -2, 'msg': 'you are not allowed'})
@@ -5865,10 +5917,16 @@ def get_tag_recommend():
     db = Database()
     tag_id = request.values.get('tag_id')
     tag = request.values.get('tag')
-    tags = db.sql('SELECT * FROM tags  WHERE name LIKE "%' + str(tag) + '%" AND father = "' + str(tag_id) + '"')
-    if tags:
-        return jsonify({'code': 1, 'msg': 'success', 'data': tags})
-    return jsonify({'code': 1, 'msg': 'success', 'data': [{'name': tag, 'id': -1}]})
+    token = request.values.get('token')
+    user = db.get({'token': token}, 'users')
+    if user:
+        tags = db.sql('SELECT * FROM tags  WHERE name LIKE "%' + str(tag) + '%" AND father = "' + str(tag_id) + '"')
+        if tags:
+            return jsonify({'code': 1, 'msg': 'success', 'data': tags})
+        if get_level(user['exp']) >= 3:
+            return jsonify({'code': 1, 'msg': 'success', 'data': [{'name': tag, 'id': -1}]})
+        return jsonify({'code': 1, 'msg': 'success', 'data': []})
+    return jsonify({'code': 0, 'msg': 'unexpected user'})
 
 
 @app.route('/api/tags/add_tag', methods=['POST'])
