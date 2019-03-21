@@ -2489,6 +2489,21 @@ def complain_comment():
     # 用户token和评论的ID
     token = request.values.get('token')
     comment_id = request.values.get('id')
+    reason = request.values.get('reason')
+    # 1-回答评论  2-文章评论  3-问题评论
+    comment_type = request.values.get('comment_type')
+    data_name = ""
+    cmt_name = ""
+    if comment_type == 1:
+        data_name = "answercomments"
+        cmt_name = "acommentID"
+    elif comment_type == 2:
+        data_name = "article_comments"
+        cmt_name = "article_comment_id"
+    elif comment_type == 3:
+        data_name = "questioncomments"
+        cmt_name="qcommentID"
+
     # 初始化数据库控制类
     db = Database()
     # 查询用户是否存在
@@ -2496,16 +2511,17 @@ def complain_comment():
     if not user:
         return jsonify({'code': 0, 'msg': 'the user is not exist'})
     # 查询评论是否存在
-    comment = db.get({'acommentID': comment_id}, 'answercomments')
+    comment = db.get({cmt_name: comment_id}, data_name)
     if not comment:
         return jsonify({'code': -1, 'msg': 'the comment is not exist'})
     # 更新评论状态
-    result = db.update({'acommentID': comment_id}, {'state': 1}, 'answercomments')
+    result = db.update({cmt_name: comment_id}, {'state': 1}, data_name)
     if not result:
         return jsonify({'code': -2, 'msg': 'error when update the data'})
     # 记录用户行为
-    db.insert({'userID': user['userID'], 'targetID': comment['acommentID'], 'targettype': 5})
-
+    db.insert({'userID': user['userID'], 'targetID': comment[cmt_name], 'targettype': 5})
+    # 插入举报记录
+    db.insert({'reporter': user['userID'], 'itemID': comment[cmt_name], 'author': comment['userID'],'reason': reason, 'type':comment_type}, 'report_log')
     return jsonify({'code': 1, 'msg': 'success'})
 
 
@@ -2742,6 +2758,7 @@ def complain_answer():
     # 用户token和回答的ID
     token = request.values.get('token')
     answer_id = request.values.get('id')
+    reason = request.values.get('reason')
     # 初始化数据库控制类
     db = Database()
     # 查询用户是否存在
@@ -2758,6 +2775,8 @@ def complain_answer():
         return jsonify({'code': -2, 'msg': 'error when update the data'})
     # 记录用户行为
     db.insert({'userID': user['userID'], 'targetID': answer['answerID'], 'targettype': 6})
+    # 插入举报记录
+    db.insert({'reporter': user['userID'], 'itemID': answer_id, 'author': answer['userID'],'reason': reason, 'type':4})
 
     return jsonify({'code': 1, 'msg': 'success'})
 
@@ -2943,6 +2962,7 @@ def complain_article():
     # 用户token和文章的ID
     token = request.values.get('token')
     article_id = request.values.get('id')
+    reason = request.values.get('reason')
     # 初始化数据库控制类
     db = Database()
     # 查询用户是否存在
@@ -2959,6 +2979,8 @@ def complain_article():
         return jsonify({'code': -2, 'msg': 'error when update the data'})
     # 记录用户行为
     db.insert({'userID': user['userID'], 'targetID': article['articleID'], 'targettype': 26})
+    # 插入举报记录
+    db.insert({'reporter': user['userID'], 'itemID': article_id, 'author': article['userID'],'reason': reason, 'type':6})
 
     return jsonify({'code': 1, 'msg': 'success'})
 
@@ -3585,7 +3607,7 @@ def get_history_search():
 
     for it in data:
         it.update({
-            'close': False
+            'close': False,
         })
 
     return jsonify({'code': 1, 'msg': 'success', 'data': data})
@@ -4001,10 +4023,15 @@ def get_sys_message():
         all_message = db.get({'type': 0}, 'sys_message', 0)
         personal = db.get({'type': 1, 'target': user['userID']}, 'sys_message', 0)
         group = db.get({'type': 2, 'target': user['userID']}, 'sys_message', 0)
+        demand = db.get({'type': 3, 'target': user['userID']}, 'sys_message', 0)
+        report = db.get({'type': 4, 'target': user['userID']}, 'sys_message', 0)
+
         data = {
             'all': all_message,
             'personal': personal,
-            'group': group
+            'group': group,
+            'demand': demand,
+            'report': report
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
