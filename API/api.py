@@ -558,8 +558,11 @@ def set_account_info():
         nickname = request.form['nickname']
         description = request.form['description']
         headportrait = request.form['headportrait']
-        email = request.form['email']
-        phonenumber = request.form['phonenumber']
+        if 'email' in request.form.keys():
+            email = request.form['email']
+        if 'phonenumber' in request.form.keys():
+            phonenumber = request.form['phonenumber']
+
         flag = db.update({'token': token},
                          {'nickname': nickname, 'description': description,
                           'headportrait': headportrait, 'phonenumber': phonenumber,
@@ -1297,7 +1300,12 @@ def get_account_balance():
     db = Database()
     user = db.get({'token': token}, 'users')
     if user:
-        return jsonify({'code': 1, 'msg': 'success', 'data': user['account_balance']})
+        account_balance = db.sql("select sum(amount) as balance from pay_log where `from`='%s'" % (user['userID']))
+        if account_balance:
+            account_balance = account_balance[0]['balance']
+        else:
+            account_balance = 0
+        return jsonify({'code': 1, 'msg': 'success', 'data': account_balance})
     return jsonify({'code': 0, 'msg': 'the user is not exist'})
 
 
@@ -3393,32 +3401,36 @@ def classify_by_tag():
 
     db = Database()
 
-    # if type == 1:
-    #     target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
-    # elif type == 2:
-    #     target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-    #                     "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc")
-    #
-    # result = flow_loading(target, each, page)
+    IDname = ""
+    commentname = ""
+    follow_type_number = 0
+
     begin = (page - 1) * each + 1
     end = page * each
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
+        IDname = "questionID"
+        commentname = "questioncomments"
+        follow_type_number = 12
+
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
-
-    # result = flow_loading(target, each, page)
+        IDname = "articleID"
+        commentname = "article_comments"
+        follow_type_number = 22
 
     for value in target:
-        value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d'),
-                      'follow': db.count({'targettype': 12, 'targetID': value['questionID']}, 'useraction'),
-                      'comment': db.count({'questionID': value['questionID']}, 'questioncomments'), })
+        value.update({
+            'tags': get_tags(value['tags']),
+            'edittime': value['edittime'].strftime('%Y/%m/%d'),
+            'follow': db.count({'targettype': follow_type_number, 'targetID': value[IDname]}, 'useraction'),
+            'comment': db.count({IDname: value[IDname]}, commentname),
+        })
 
     return jsonify({'code': 1, 'msg': 'success', 'data': target})
 
@@ -3439,22 +3451,35 @@ def classify_all_tag():
     result = []
     db = Database()
 
+    IDname = ""
+    commentname = ""
+    follow_type_number = 0
+
     category = db.sql("select * from tags where type=1")
     for cate in category:
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
+            IDname = "questionID"
+            commentname="questioncomments"
+            follow_type_number = 12
         elif type == 2:
-            target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+            target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
+                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
+            IDname = "articleID"
+            commentname="article_comments"
+            follow_type_number = 22
 
         for value in target:
-            value.update({'tags': get_tags(value['tags']), 'edittime': value['edittime'].strftime('%Y/%m/%d'),
-                          'follow': db.count({'targettype': 12, 'targetID': value['questionID']}, 'useraction'),
-                          'comment': db.count({'questionID': value['questionID']}, 'questioncomments'), })
+            value.update({
+                'tags': get_tags(value['tags']),
+                'edittime': value['edittime'].strftime('%Y/%m/%d'),
+                'follow': db.count({'targettype': follow_type_number, 'targetID': value[IDname]}, 'useraction'),
+                'comment': db.count({IDname: value[IDname]}, commentname),
+            })
 
         result.append(target)
 
@@ -6116,6 +6141,6 @@ if __name__ == '__main__':
     # with open('static\\upload\\36.txt', 'rb') as file:
     #     result = pred(file.read())
     #     print(result[0])
-    app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
-        '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
-    # app.run(host='0.0.0.0', port=5000)
+    # app.run(threaded=True, host='0.0.0.0', port=5000, ssl_context=(
+    #     '/etc/letsencrypt/live/hanerx.tk/fullchain.pem', '/etc/letsencrypt/live/hanerx.tk/privkey.pem'))
+    app.run(host='0.0.0.0', port=5000)
