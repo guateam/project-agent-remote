@@ -1319,11 +1319,16 @@ def add_account_balance():
     num = request.form['num']
     token = request.form['token']
     res = change_account_balance(num, token)
-    if res == 1:
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    Flag = False
+    if user:
+        flag = db.insert({'from': user['userID'], 'amount': float(num), 'type': 8, 'receive': 0}, 'pay_log')
+    if res == 1 and flag:
         return jsonify({'code': 1, 'msg': 'success'})
     elif res == 0:
         return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
-    elif res == -2:
+    elif res == -2 or not flag:
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
 
 
@@ -1339,11 +1344,16 @@ def minus_account_balance():
     num = -num
     token = request.form['token']
     res = change_account_balance(num, token)
-    if res == 1:
+    db = Database()
+    user = db.get({'token': token}, 'users')
+    flag = False
+    if user:
+        flag = db.insert({'from': user['userID'], 'amount': -float(num), 'type': 9, 'receive': 0}, 'pay_log')
+    if res == 1 and flag:
         return jsonify({'code': 1, 'msg': 'success'})
     elif res == 0:
         return jsonify({'code': 0, 'msg': 'there are something wrong when operate the database'})
-    elif res == -2:
+    elif res == -2 or not flag:
         return jsonify({'code': -2, 'msg': 'the user is not exist'})
     elif res == -1:
         return jsonify({'code': -1, 'msg': 'account balance not enough'})
@@ -3410,7 +3420,7 @@ def classify_by_tag():
 
     if type == 1:
         target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                           "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
         IDname = "questionID"
         commentname = "questioncomments"
@@ -3418,7 +3428,7 @@ def classify_by_tag():
 
     elif type == 2:
         target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                        "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                         "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                         % (begin, end))
         IDname = "articleID"
         commentname = "article_comments"
@@ -3460,17 +3470,17 @@ def classify_all_tag():
         tag = str(cate['id'])
         if type == 1:
             target = db.sql("select * from questions where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                               "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
             IDname = "questionID"
-            commentname="questioncomments"
+            commentname = "questioncomments"
             follow_type_number = 12
         elif type == 2:
             target = db.sql("select * from article where tags like '%," + tag + ",%' or tags like '" + tag + ",%'"
-                            "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
+                                                                                                             "or tags like '" + tag + "' or tags like '%," + tag + "' order by edittime desc limit %d,%d"
                             % (1, 6))
             IDname = "articleID"
-            commentname="article_comments"
+            commentname = "article_comments"
             follow_type_number = 22
 
         for value in target:
