@@ -2097,7 +2097,8 @@ def get_question_comment():
         data = db.get({'questionID': question_id}, 'question_comments_info', 0)
         for value in data:
             value.update({'usergroup': get_group(value['usergroup']), 'level': get_level(value['exp']),
-                          'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S')})
+                          'createtime': value['createtime'].strftime('%Y-%m-%d %H:%M:%S'),
+                          'ID':value['qcommentID']})
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
@@ -2361,7 +2362,8 @@ def get_answer_comment_list():
                     'create_time': get_formative_datetime(value['createtime']),
                     'agree': value['agree'],
                     'usergroup': get_group(value['usergroup']),
-                    'level': get_level(value['exp'])
+                    'level': get_level(value['exp']),
+                    'ID':value['acommentID'],
                 })
         sorted(data, key=lambda a: a['agree'], reverse=True)
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
@@ -3283,7 +3285,8 @@ def get_article_comment():
     db = Database()
     comment = db.get({'articleID': article_id}, 'article_comments_info', 0)
     for value in comment:
-        value.update({'group': get_group(value['usergroup']), 'level': get_level(value['exp'])})
+        value.update({'group': get_group(value['usergroup']), 'level': get_level(value['exp']),
+                      'ID':value['article_comment_id']})
     return jsonify({'code': 1, 'msg': 'success', 'data': comment})
 
 
