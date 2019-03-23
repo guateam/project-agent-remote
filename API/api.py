@@ -104,7 +104,77 @@ def new_token():
 """
     用户接口
 """
+@app.route('/api/account/complain')
+def complain():
+    """
+    举报某一条评论
+    :return:code(-2=举报失败 -1=未知评论，0=用户不存在 1=举报成功)
+    """
 
+    # 用户token和评论的ID
+    token = request.values.get('token')
+    comment_id = request.values.get('id')
+    reason = request.values.get('reason')
+    # 1-回答评论  2-文章评论  3-问题评论  4-回答   5-话题   6-文章
+    report_type = request.values.get('report_type')
+    data_name = ""
+    cmt_name = ""
+    act_type = ""
+    if report_type == 1:
+        data_name = "answercomments"
+        cmt_name = "acommentID"
+        act_type = 5
+    elif report_type == 2:
+        data_name = "article_comments"
+        cmt_name = "article_comment_id"
+        act_type = 27
+    elif report_type == 3:
+        data_name = "questioncomments"
+        cmt_name="qcommentID"
+        act_type = 16
+    elif report_type == 4:
+        data_name = "answers"
+        cmt_name="answerID"
+        act_type = 6
+    elif report_type == 5:
+        data_name = "questions"
+        cmt_name="questionID"
+        act_type = 15
+    elif report_type == 6:
+        data_name = "article"
+        cmt_name="articleID"
+        act_type = 26
+    # 初始化数据库控制类
+    db = Database()
+    # 查询用户是否存在
+    user = db.get({'token': token}, 'users')
+    if not user:
+        return jsonify({'code': 0, 'msg': 'the user is not exist'})
+    # 查询举报对象是否存在
+    comment = db.get({cmt_name: comment_id}, data_name)
+    if not comment:
+        return jsonify({'code': -1, 'msg': 'the comment is not exist'})
+    # 更新评论状态
+    result = db.update({cmt_name: comment_id}, {'state': 1}, data_name)
+    if not result:
+        return jsonify({'code': -2, 'msg': 'error when update the data'})
+    # 记录用户行为
+    db.insert({'userID': user['userID'], 'targetID': comment[cmt_name], 'targettype': act_type})
+    # 插入举报记录
+    db.insert({'reporter': user['userID'], 'itemID': comment[cmt_name], 'author': comment['userID'],'reason': reason, 'type':report_type}, 'report_log')
+
+    return jsonify({'code': 1, 'msg': 'success'})
+
+
+@app.route('/api/account/back_get_complain')
+def back_get_complain():
+    """
+    后台获取所有举报记录
+    :return:
+    """
+    db = Database()
+    log = db.get({} ,'report_log')
+    return jsonify({'code': 1, 'msg': 'success', 'data': log})
 
 @app.route('/api/account/wx_openid')
 def openid():
@@ -2031,6 +2101,22 @@ def get_question_comment():
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
+@app.route('/api/questions/get_question_comment_by_id')
+def get_question_comment_by_id():
+    """
+    获取问题评论
+    :return: code(0=未知问题，1=成功)
+    """
+    comment_id = request.values.get('comment_id')
+    db = Database()
+    comment = db.get({'qcommentID': comment_id}, 'questioncomments')
+    if comment:
+        user = db.get({'userID':comment['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': comment}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
+
 
 @app.route('/api/questions/agree_question_comment')
 def agree_question_comment():
@@ -2386,6 +2472,21 @@ def edit_answer():
     else:
         return jsonify({'code': 0, 'msg': "there are something wrong when edited the data in database"})
 
+@app.route('/api/answer/get_answer_comment_by_id')
+def get_answer_comment_by_id():
+    """
+    获取回答评论
+    :return: code(0=未知问题，1=成功)
+    """
+    comment_id = request.values.get('comment_id')
+    db = Database()
+    comment = db.get({'acommentID': comment_id}, 'answercomments')
+    if comment:
+        user = db.get({'userID':comment['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': comment}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
 
 @app.route('/api/answer/add_answer_comment', methods=['POST'])
 def add_answer_comment():
@@ -2505,52 +2606,6 @@ def agree_answer_comment():
                 return jsonify({'code': -3, 'msg': 'unable to update agree number'})
         return jsonify({'code': -1, 'msg': 'unknown comment'})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
-
-
-@app.route('/api/answer/complain_comment')
-def complain_comment():
-    """
-    举报某一条评论
-    :return:code(-2=举报失败 -1=未知评论，0=用户不存在 1=举报成功)
-    """
-
-    # 用户token和评论的ID
-    token = request.values.get('token')
-    comment_id = request.values.get('id')
-    reason = request.values.get('reason')
-    # 1-回答评论  2-文章评论  3-问题评论
-    comment_type = request.values.get('comment_type')
-    data_name = ""
-    cmt_name = ""
-    if comment_type == 1:
-        data_name = "answercomments"
-        cmt_name = "acommentID"
-    elif comment_type == 2:
-        data_name = "article_comments"
-        cmt_name = "article_comment_id"
-    elif comment_type == 3:
-        data_name = "questioncomments"
-        cmt_name="qcommentID"
-
-    # 初始化数据库控制类
-    db = Database()
-    # 查询用户是否存在
-    user = db.get({'token': token}, 'users')
-    if not user:
-        return jsonify({'code': 0, 'msg': 'the user is not exist'})
-    # 查询评论是否存在
-    comment = db.get({cmt_name: comment_id}, data_name)
-    if not comment:
-        return jsonify({'code': -1, 'msg': 'the comment is not exist'})
-    # 更新评论状态
-    result = db.update({cmt_name: comment_id}, {'state': 1}, data_name)
-    if not result:
-        return jsonify({'code': -2, 'msg': 'error when update the data'})
-    # 记录用户行为
-    db.insert({'userID': user['userID'], 'targetID': comment[cmt_name], 'targettype': 5})
-    # 插入举报记录
-    db.insert({'reporter': user['userID'], 'itemID': comment[cmt_name], 'author': comment['userID'],'reason': reason, 'type':comment_type}, 'report_log')
-    return jsonify({'code': 1, 'msg': 'success'})
 
 
 @app.route('/api/answer/agree_complain_comment')
@@ -3230,6 +3285,23 @@ def get_article_comment():
     for value in comment:
         value.update({'group': get_group(value['usergroup']), 'level': get_level(value['exp'])})
     return jsonify({'code': 1, 'msg': 'success', 'data': comment})
+
+
+@app.route('/api/article/get_article_comment_by_id')
+def get_article_comment_by_id():
+    """
+    获取问题评论
+    :return: code(0=未知问题，1=成功)
+    """
+    comment_id = request.values.get('comment_id')
+    db = Database()
+    comment = db.get({'article_comment_id': comment_id}, 'article_comments')
+    if comment:
+        user = db.get({'userID':comment['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': comment}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
 
 
 @app.route('/api/article/add_article_comment', methods=['POST'])
