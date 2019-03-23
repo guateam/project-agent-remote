@@ -1958,6 +1958,32 @@ def get_answer_list():
     return jsonify({'code': 0, 'msg': 'unknown question'})
 
 
+@app.route('/api/questions/get_answer_by_id')
+def get_answer_by_id():
+    answer_id = request.values.get('answer_id')
+    db = Database()
+    answer = db.get({'answerID': answer_id}, 'answers')
+    if answer:
+        user = db.get({'userID': answer['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': answer}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
+
+
+@app.route('/api/questions/get_question_by_id')
+def get_answer_by_id():
+    q_id = request.values.get('question_id')
+    db = Database()
+    question = db.get({'questionID': q_id}, 'questions')
+    if question:
+        user = db.get({'userID': question['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': question}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
+
+
 @app.route('/api/questions/get_priced_answer_list')
 def get_priced_answer_list():
     """
@@ -2989,6 +3015,19 @@ def collect_article():
         return jsonify({'code': 1, 'msg': 'collect success'})
     else:
         return jsonify({'code': 0, 'msg': 'there are something wrong when inserted the data into database'})
+
+
+@app.route('/api/article/get_article_by_id')
+def get_article_by_id():
+    article_id = request.values.get('article_id')
+    db = Database()
+    article = db.get({'articleID': article_id}, 'article')
+    if article:
+        user = db.get({'userID': article['userID']}, 'users')
+        if user:
+            return jsonify({'code': 1, 'msg': 'success', 'data': {'author': user, 'item': article}})
+        return jsonify({'code': 0, 'msg': 'user is not exist'})
+    return jsonify({'code': -1, 'msg': 'comment is not exist'})
 
 
 @app.route('/api/article/get_article_by userid')
@@ -4130,14 +4169,12 @@ def get_sys_message():
         personal = db.get({'type': 1, 'target': user['userID']}, 'sys_message', 0)
         group = db.get({'type': 2, 'target': user['userID']}, 'sys_message', 0)
         demand = db.get({'type': 3, 'target': user['userID']}, 'sys_message', 0)
-        report = db.get({'type': 4, 'target': user['userID']}, 'sys_message', 0)
 
         data = {
             'all': all_message,
             'personal': personal,
             'group': group,
             'demand': demand,
-            'report': report
         }
         return jsonify({'code': 1, 'msg': 'success', 'data': data})
     return jsonify({'code': 0, 'msg': 'unexpected user'})
